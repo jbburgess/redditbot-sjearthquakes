@@ -6,26 +6,9 @@ import sys
 
 import azure.functions as func
 from bs4 import BeautifulSoup
+from icalendar import Calendar
 import praw
 import requests
-
-# Initialize global variables.
-BASE_URL = os.environ["NewsSite_BaseURL"]
-NEWS_URL = BASE_URL + os.environ["NewsSite_NewsURL"]
-MAX_ARTICLES = int(os.environ["NewsSite_MaxArticles"])
-CUTOFF_DAYS = int(os.environ["NewsSite_ArticleCutoffDays"])
-
-USER_AGENT = os.environ["Reddit_Connection_UserAgent"]
-CLIENT_ID = os.environ["Reddit_Connection_ClientID"]
-CLIENT_SECRET = os.environ["Reddit_Connection_ClientSecret"]
-USERNAME = os.environ["Reddit_Connection_Username"]
-PASSWORD = os.environ["Reddit_Connection_Password"]
-
-FLAIR_ID = os.environ["Reddit_Submission_News_FlairID"]
-RESUBMIT = os.environ["Reddit_Submission_Resubmit"]
-SEND_REPLIES = os.environ["Reddit_Submission_SendReplies"]
-
-SUBREDDIT = os.environ["Reddit_Subreddit"]
 
 app = func.FunctionApp()
 
@@ -36,23 +19,38 @@ def post_news(timer: func.TimerRequest) -> None:
         tzinfo=datetime.timezone.utc).isoformat()
 
     logging.debug('Python timer trigger function ran at %s', utc_timestamp)
-    cutoffutc = datetime.datetime.utcnow() - datetime.timedelta(days = CUTOFF_DAYS)
+
+    # Initialize environmental variables.
+    user_agent = os.environ["Reddit_Connection_UserAgent"]
+    client_id = os.environ["Reddit_Connection_ClientID"]
+    client_secret = os.environ["Reddit_Connection_ClientSecret"]
+    username = os.environ["Reddit_Connection_Username"]
+    password = os.environ["Reddit_Connection_Password"]
+
+    flair_id = os.environ["Reddit_Submission_News_FlairID"]
+    resubmit = os.environ["Reddit_Submission_Resubmit"]
+    send_replies = os.environ["Reddit_Submission_SendReplies"]
+    subreddit = os.environ["Reddit_Subreddit"]
+
+    cutoff_days = int(os.environ["NewsSite_ArticleCutoffDays"])
+
+    cutoffutc = datetime.datetime.utcnow() - datetime.timedelta(days = cutoff_days)
 
     #Retrieve new articles from Earthquakes website.
-    articles = get_newsarticles()
+    articles = _get_newsarticles()
 
     # Connect to subreddit if new articles were found.
     if articles:
         try:
             reddit = praw.Reddit(
-                user_agent = USER_AGENT,
-                client_id = CLIENT_ID,
-                client_secret = CLIENT_SECRET,
-                username = USERNAME,
-                password = PASSWORD,
+                user_agent = user_agent,
+                client_id = client_id,
+                client_secret = client_secret,
+                username = username,
+                password = password,
             )
 
-            subreddit = reddit.subreddit(SUBREDDIT)
+            subreddit = reddit.subreddit(subreddit)
         except:
             logging.error('Unexpected error when initializing reddit connection:%s', sys.exc_info()[0])
             raise
@@ -104,9 +102,9 @@ def post_news(timer: func.TimerRequest) -> None:
                         submit_params = {
                             'title': article['title'],
                             'url': article['link'],
-                            'flair_id': FLAIR_ID,
-                            'resubmit': RESUBMIT,
-                            'send_replies': SEND_REPLIES
+                            'flair_id': flair_id,
+                            'resubmit': resubmit,
+                            'send_replies': send_replies
                         }
 
                         # Submit new post to subreddit.
@@ -115,13 +113,13 @@ def post_news(timer: func.TimerRequest) -> None:
                         except praw.exceptions.RedditAPIException as exception:
                             for subexception in exception.items:
                                 if subexception.error_type == 'ALREADY_SUB':
-                                    logging.critical(f'Error encountered when posting article ({article["title"]}): Article has already been posted, but was not caught by list comparison.')
+                                    logging.critical('Error encountered when posting article (%s): Article has already been posted, but was not caught by list comparison.', article["title"])
                                     raise
                                 else:
-                                    logging.error(f'Unexpected Reddit API error encountered when posting article ({article["title"]}): {subexception.error_type}, {subexception.message}')
+                                    logging.error('Unexpected Reddit API error encountered when posting article (%s): %s, %s', article["title"], subexception.error_type, subexception.message)
                                     raise
                         except:
-                            logging.error(f'Unexpected error when posting article ({article["title"]}): {sys.exc_info()[0]}')
+                            logging.error('Unexpected error when posting article (%s): %s', article["title"], sys.exc_info()[0])
                             raise
                         else:
                             logging.info('New article successfully posted: %s', article['title'])
@@ -137,23 +135,89 @@ def post_news(timer: func.TimerRequest) -> None:
     # Sleep for configured interval before checking for news again.
     gc.collect()
 
-def get_newsarticles():
+# Scheduled Azure Function to check Earthquakes match schedule and trigger match thread Function when needed.
+@app.timer_trigger(schedule="0 */5 0-3,14-23 * * *", arg_name="timer", run_on_startup=True,
+              use_monitor=False)
+def get_schedule(timer: func.TimerRequest) -> None:
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    # Initialize environmental variables
+    schedule_url = os.environ["Schedule_URL"]
+    thread_function_url = os.environ["Reddit_MatchThread_FunctionURL"]
+
+    # Retrieve .ics file from website and parse events.
+    response = requests.get(schedule_url, timeout = 10)
+
+    if response.status_code == 200:
+        ics_data = response.text
+        calendar = Calendar.from_ical(ics_data)
+        events = []
+        for component in calendar.walk():
+            if component.name == "VEVENT":
+                event = {
+                    "summary": component.get("summary"),
+                    "start": component.get("dtstart").dt,
+                    "end": component.get("dtend").dt,
+                    "location": component.get("location"),
+                    "description": component.get("description"),
+                }
+                events.append(event)
+    else:
+        raise ValueError("Failed to retrieve .ics file")
+
+    # Filter to events happening only in the window of interest.
+    if events:
+        yesterday = now + datetime.timedelta(hours = -26, minutes = -2.5)
+        tomorrow = now + datetime.timedelta(hours = 12, minutes = 2.5)
+        events = [event for event in events if event["start"] > yesterday and event["start"] < tomorrow]
+
+    # Process filtered events and call appropriate match thread functions
+    if events:
+        # Initialize data to be sent to match thread function
+        data = {
+            "event": event
+        }
+
+        # Check event time relative to now and call match thread function for appropriate thread type as needed.
+        for event in events:
+            if event["start"] < now + datetime.timedelta(hours = 12, minutes = 2.5) and event["start"] > now + datetime.timedelta(hours = 12, minutes = -2.5):
+                data["type"] = "prematch"
+                _http_request(thread_function_url, "POST", data)
+            elif event["start"] < now + datetime.timedelta(hours = 1, minutes = 2.5) and event["start"] > now + datetime.timedelta(hours = 1, minutes = -2.5):
+                data["type"] = "match"
+                _http_request(thread_function_url, "POST", data)
+            elif event["start"] < now + datetime.timedelta(hours = -2, minutes = 2.5) and event["start"] > now + datetime.timedelta(hours = -2, minutes = -2.5):
+                data["type"] = "postmatch"
+                _http_request(thread_function_url, "POST", data)
+            elif event["start"] < now + datetime.timedelta(hours = -26, minutes = 2.5) and event["start"] > now + datetime.timedelta(hours = -26, minutes = -2.5):
+                _unsticky_match_thread(event)
+            else:
+                logging.debug("Event outside of window of interest: %s, %s", event["summary"], event["start"])
+
+# Internal function to retrieve news articles from Earthquakes website.
+def _get_newsarticles():
+    # Initialize environmental variables.
+    base_url = os.environ["NewsSite_BaseURL"]
+    news_url = base_url + os.environ["NewsSite_NewsURL"]
+    max_articles = int(os.environ["NewsSite_MaxArticles"])
+    cutoff_days = int(os.environ["NewsSite_ArticleCutoffDays"])
+
     # Retrieve Earthquakes website news page and parse text articles.
     headers = {"User-Agent": "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.8) Gecko/20100722 Firefox/3.6.8 GTB7.1 (.NET CLR 3.5.30729)", "Referer": "http://example.com"}
-    page = requests.get(NEWS_URL, headers=headers, timeout=5)
+    page = requests.get(news_url, headers=headers, timeout=5)
     soup = BeautifulSoup(page.content, 'html.parser')
     results = soup.find("section", class_='d3-l-grid--outer d3-l-section-row')
     article_elems = results.find_all("div", class_='d3-l-col__col-3')
 
     if article_elems:
-        cutoffutcutc = datetime.datetime.utcnow() - datetime.timedelta(days = CUTOFF_DAYS)
+        cutoffutcutc = datetime.datetime.utcnow() - datetime.timedelta(days = cutoff_days)
         articles = []
 
-        for article_elem in article_elems[:MAX_ARTICLES]:
+        for article_elem in article_elems[:max_articles]:
             # Parse article information.
             title = article_elem.a['title']
             href = article_elem.a['href']
-            link = BASE_URL + href
+            link = base_url + href
 
             # If article is a "NEWS:" post and not a duplicate, add to articles array.
             if "NEWS: " in title:
