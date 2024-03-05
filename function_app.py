@@ -8,8 +8,8 @@ This file contains the following Azure Functions:
       schedule and trigger match thread functions when needed.
 
 This file also contains the following internal functions:
-    - _get_newsarticles: Internal function to retrieve news articles from the
-      Earthquakes website.
+    - _get_newsarticles: Internal function to parse news articles from the
+      Earthquakes website News page.
     - _get_submissions: Internal function to retrieve recent posts in subreddit and filter
       to threads matching the provided name, flair, and stickied status.
     - _http_request: Internal function to make HTTP requests.
@@ -225,7 +225,7 @@ def get_schedule(timer: func.TimerRequest) -> None:
                 data["type"] = "postmatch"
                 _http_request(thread_function_url, "POST", data)
             elif event["start"] < now + datetime.timedelta(hours = -26, minutes = 2.5) and event["start"] > now + datetime.timedelta(hours = -26, minutes = -2.5):
-                _unsticky_match_thread(event)
+                _unsticky_match_threads(event)
             else:
                 logging.debug("Event outside of window of interest: %s, %s", event["summary"], event["start"])
 
@@ -290,7 +290,7 @@ def _get_newsarticles():
     return articles
 
 # Internal function to retrieve recent posts in subreddit and filter to threads matching the provided name, flair, and stickied status.
-def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[bool] = None) -> dict:
+def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[bool] = None) -> list:
     '''
     Retrieve recent posts in subreddit and filter to threads matching the provided name, flair, and stickied status.
 
@@ -373,7 +373,7 @@ def _http_request(url, method, data: Optional[dict] = None):
     return content
 
 # Internal function to initialize the reddit connection to the configured subreddit.
-def _init_reddit_connection():
+def _init_reddit_connection() -> praw.Reddit:
     # Initialize environmental variables.
     user_agent = os.environ["Reddit_Connection_UserAgent"]
     client_id = os.environ["Reddit_Connection_ClientID"]
@@ -397,7 +397,19 @@ def _init_reddit_connection():
     return reddit
 
 # Internal function to unsticky match threads.
-def _unsticky_match_thread(event):
+def _unsticky_match_threads(event):
+    '''
+    Unsticky any stickied match threads.
+
+    Args:
+        event: The event to unsticky the match thread for.
+    
+    Returns:
+        None
+
+    Raises:
+        Any exceptions encountered when initializing the reddit connection or unstickying match threads.
+    '''
 
     # Initialize environmental variables.
     subreddit = os.environ["Reddit_Subreddit"]
@@ -407,7 +419,7 @@ def _unsticky_match_thread(event):
         reddit = _init_reddit_connection()
         subreddit = reddit.subreddit(subreddit)
     except:
-        logging.error('Unexpected error when initializing reddit connection:%s', sys.exc_info()[0])
+        logging.error('Unexpected error when initializing reddit connection and subreddit:%s', sys.exc_info()[0])
         raise
 
     stickied_threads = _get_submissions(event["summary"], flair = "Match", stickied = True)
@@ -420,5 +432,5 @@ def _unsticky_match_thread(event):
             except:
                 logging.error('Unexpected error when unstickying match thread:%s', sys.exc_info()[0])
                 raise
-            else:
-                logging.info('Match thread unstickied: %s', thread["title"])
+            
+            logging.info('Match thread unstickied: %s', thread["title"])
