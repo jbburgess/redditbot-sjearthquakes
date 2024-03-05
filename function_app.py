@@ -1,3 +1,23 @@
+'''
+Collection of Azure Functions for the Reddit bot /u/SJEarthquakesBot.
+
+This file contains the following Azure Functions:
+    - post_news: Scheduled Azure Function to check the Earthquakes news site
+      and post new articles to subreddit.
+    - get_schedule: Scheduled Azure Function to check the Earthquakes match
+      schedule and trigger match thread functions when needed.
+
+This file also contains the following internal functions:
+    - _get_newsarticles: Internal function to retrieve news articles from the
+      Earthquakes website.
+    - _get_submissions: Internal function to retrieve recent posts in subreddit and filter
+      to threads matching the provided name, flair, and stickied status.
+    - _http_request: Internal function to make HTTP requests.
+    - _init_reddit_connection: Internal function to initialize the reddit 
+      connection to the configured subreddit.
+    - _unsticky_match_thread: Internal function to unsticky match threads.
+'''
+
 import datetime
 import gc
 import json
@@ -18,18 +38,25 @@ app = func.FunctionApp()
 @app.schedule(schedule="0 */5 0-3,14-23 * * *", arg_name="timer", run_on_startup=True,
               use_monitor=False)
 def post_news(timer: func.TimerRequest) -> None:
+    '''
+    Scheduled Azure Function to check the Earthquakes news site and post new articles to the subreddit.
+
+    Args:
+        timer: The Azure Function timer trigger.
+
+    Returns:
+        None
+
+    Raises:
+        Any exceptions encountered when initializing the reddit connection, retrieving subreddit posts, or posting articles.
+    '''
+
     utc_timestamp = datetime.datetime.utcnow().replace(
         tzinfo=datetime.timezone.utc).isoformat()
 
     logging.debug('Python timer trigger function ran at %s', utc_timestamp)
 
     # Initialize environmental variables.
-    user_agent = os.environ["Reddit_Connection_UserAgent"]
-    client_id = os.environ["Reddit_Connection_ClientID"]
-    client_secret = os.environ["Reddit_Connection_ClientSecret"]
-    username = os.environ["Reddit_Connection_Username"]
-    password = os.environ["Reddit_Connection_Password"]
-
     flair_id = os.environ["Reddit_Submission_News_FlairID"]
     resubmit = os.environ["Reddit_Submission_Resubmit"]
     send_replies = os.environ["Reddit_Submission_SendReplies"]
@@ -45,14 +72,7 @@ def post_news(timer: func.TimerRequest) -> None:
     # Connect to subreddit if new articles were found.
     if articles:
         try:
-            reddit = praw.Reddit(
-                user_agent = user_agent,
-                client_id = client_id,
-                client_secret = client_secret,
-                username = username,
-                password = password,
-            )
-
+            reddit = _init_reddit_connection()
             subreddit = reddit.subreddit(subreddit)
         except:
             logging.error('Unexpected error when initializing reddit connection:%s', sys.exc_info()[0])
@@ -142,6 +162,18 @@ def post_news(timer: func.TimerRequest) -> None:
 @app.timer_trigger(schedule="0 */5 0-3,14-23 * * *", arg_name="timer", run_on_startup=True,
               use_monitor=False)
 def get_schedule(timer: func.TimerRequest) -> None:
+    '''
+    Scheduled Azure Function to check the Earthquakes match schedule and trigger match thread functions when needed.
+    
+    Args:
+        timer: The Azure Function timer trigger.
+        
+    Returns:
+        None
+        
+    Raises:
+        Any exceptions encountered when initializing the reddit connection, retrieving subreddit posts, or calling match thread functions.
+    '''
     now = datetime.datetime.now(datetime.timezone.utc)
 
     # Initialize environmental variables
@@ -257,6 +289,7 @@ def _get_newsarticles():
 
     return articles
 
+# Internal function to retrieve recent posts in subreddit and filter to threads matching the provided name, flair, and stickied status.
 def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[bool] = None) -> dict:
     '''
     Retrieve recent posts in subreddit and filter to threads matching the provided name, flair, and stickied status.
@@ -274,23 +307,11 @@ def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[
     '''
 
     # Initialize environmental variables.
-    user_agent = os.environ["Reddit_Connection_UserAgent"]
-    client_id = os.environ["Reddit_Connection_ClientID"]
-    client_secret = os.environ["Reddit_Connection_ClientSecret"]
-    username = os.environ["Reddit_Connection_Username"]
-    password = os.environ["Reddit_Connection_Password"]
     subreddit = os.environ["Reddit_Subreddit"]
 
     # Connect to subreddit
     try:
-        reddit = praw.Reddit(
-            user_agent = user_agent,
-            client_id = client_id,
-            client_secret = client_secret,
-            username = username,
-            password = password,
-        )
-
+        reddit = _init_reddit_connection()
         subreddit = reddit.subreddit(subreddit)
     except:
         logging.error('Unexpected error when initializing reddit connection:%s', sys.exc_info()[0])
@@ -303,7 +324,7 @@ def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[
         logging.debug('Retrieving subreddit posts.')
 
         for submission in subreddit.new(limit=100):
-            dict = {
+            submission_dict = {
                 "author": submission.author.name,
                 "created": submission.created_utc,
                 "id": submission.id,
@@ -314,7 +335,7 @@ def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[
                 "title": submission.title.lower(),
             }
 
-            submissions.append(dict)
+            submissions.append(submission_dict)
     except:
         logging.error('Unexpected error when retrieving subreddit posts:%s', sys.exc_info()[0])
         raise
@@ -349,20 +370,18 @@ def _http_request(url, method, data: Optional[dict] = None):
         with request.urlopen(req) as r:
             content = r.read()
 
-    print(content)
+    return content
 
-# Internal function to unsticky match threads.
-def _unsticky_match_thread(event):
-    
+# Internal function to initialize the reddit connection to the configured subreddit.
+def _init_reddit_connection():
     # Initialize environmental variables.
     user_agent = os.environ["Reddit_Connection_UserAgent"]
     client_id = os.environ["Reddit_Connection_ClientID"]
     client_secret = os.environ["Reddit_Connection_ClientSecret"]
     username = os.environ["Reddit_Connection_Username"]
     password = os.environ["Reddit_Connection_Password"]
-    subreddit = os.environ["Reddit_Subreddit"]
 
-    # Connect to subreddit
+    # Connect to reddit
     try:
         reddit = praw.Reddit(
             user_agent = user_agent,
@@ -371,15 +390,35 @@ def _unsticky_match_thread(event):
             username = username,
             password = password,
         )
+    except:
+        logging.error('Unexpected error when initializing reddit connection:%s', sys.exc_info()[0])
+        raise
 
+    return reddit
+
+# Internal function to unsticky match threads.
+def _unsticky_match_thread(event):
+
+    # Initialize environmental variables.
+    subreddit = os.environ["Reddit_Subreddit"]
+
+    # Connect to subreddit
+    try:
+        reddit = _init_reddit_connection()
         subreddit = reddit.subreddit(subreddit)
     except:
         logging.error('Unexpected error when initializing reddit connection:%s', sys.exc_info()[0])
         raise
-    
+
     stickied_threads = _get_submissions(event["summary"], flair = "Match", stickied = True)
 
     if stickied_threads:
         for thread in stickied_threads:
-            _http_request(thread["permalink"] + "/unsticky", "POST")
-            logging.info('Match thread unstickied: %s', thread["title"])
+            try:
+                submission = reddit.submission(thread["id"])
+                submission.mod.sticky(state = False, bottom = False)
+            except:
+                logging.error('Unexpected error when unstickying match thread:%s', sys.exc_info()[0])
+                raise
+            else:
+                logging.info('Match thread unstickied: %s', thread["title"])
