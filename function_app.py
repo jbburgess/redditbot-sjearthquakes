@@ -1,8 +1,11 @@
 import datetime
 import gc
+import json
 import logging
 import os
 import sys
+from typing import Optional
+from urllib import request
 
 import azure.functions as func
 from bs4 import BeautifulSoup
@@ -253,3 +256,130 @@ def _get_newsarticles():
     del results
 
     return articles
+
+def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[bool] = None) -> dict:
+    '''
+    Retrieve recent posts in subreddit and filter to threads matching the provided name, flair, and stickied status.
+
+    Args:
+        name: The name of the thread to filter to.
+        flair: The flair of the thread to filter to.
+        stickied: The stickied status of the thread to filter to.
+
+    Returns:
+        A list of dictionaries containing the filtered threads.
+
+    Raises:
+        Any exceptions encountered when initializing the reddit connection or retrieving subreddit posts.
+    '''
+
+    # Initialize environmental variables.
+    user_agent = os.environ["Reddit_Connection_UserAgent"]
+    client_id = os.environ["Reddit_Connection_ClientID"]
+    client_secret = os.environ["Reddit_Connection_ClientSecret"]
+    username = os.environ["Reddit_Connection_Username"]
+    password = os.environ["Reddit_Connection_Password"]
+    subreddit = os.environ["Reddit_Subreddit"]
+
+    # Connect to subreddit
+    try:
+        reddit = praw.Reddit(
+            user_agent = user_agent,
+            client_id = client_id,
+            client_secret = client_secret,
+            username = username,
+            password = password,
+        )
+
+        subreddit = reddit.subreddit(subreddit)
+    except:
+        logging.error('Unexpected error when initializing reddit connection:%s', sys.exc_info()[0])
+        raise
+
+    # Retrieve recent posts in subreddit
+    submissions = []
+
+    try:
+        logging.debug('Retrieving subreddit posts.')
+
+        for submission in subreddit.new(limit=100):
+            dict = {
+                "author": submission.author.name,
+                "created": submission.created_utc,
+                "id": submission.id,
+                "link_flair_text": submission.link_flair_text,
+                "name": submission.name,
+                "permalink": submission.permalink,
+                "stickied": submission.stickied,
+                "title": submission.title.lower(),
+            }
+
+            submissions.append(dict)
+    except:
+        logging.error('Unexpected error when retrieving subreddit posts:%s', sys.exc_info()[0])
+        raise
+
+    if submissions:
+        # Filter to threads matching the provided name.
+        submissions = [submission for submission in submissions if name.lower() in submission['title'].lower()]
+
+        # If a flair was provided, filter to threads matching the provided flair.
+        if flair:
+            submissions = [submission for submission in submissions if submission['link_flair_text'] and flair.lower() in submission['link_flair_text'].lower()]
+
+        # If stickied is provided, filter to threads matching the provided stickied status.
+        if stickied:
+            submissions = [submission for submission in submissions if submission['stickied'] == stickied]
+    else:
+        logging.error('No subreddit posts retrieved.')
+
+    return submissions
+
+# Internal function to make HTTP requests.
+def _http_request(url, method, data: Optional[dict] = None):
+    req = request.Request(url, method = method)
+    req.add_header('Content-Type', 'application/json')
+
+    if data:
+        data = json.dumps(data)
+        data = data.encode()
+        with request.urlopen(req, data = data) as r:
+            content = r.read()
+    else:
+        with request.urlopen(req) as r:
+            content = r.read()
+
+    print(content)
+
+# Internal function to unsticky match threads.
+def _unsticky_match_thread(event):
+    
+    # Initialize environmental variables.
+    user_agent = os.environ["Reddit_Connection_UserAgent"]
+    client_id = os.environ["Reddit_Connection_ClientID"]
+    client_secret = os.environ["Reddit_Connection_ClientSecret"]
+    username = os.environ["Reddit_Connection_Username"]
+    password = os.environ["Reddit_Connection_Password"]
+    subreddit = os.environ["Reddit_Subreddit"]
+
+    # Connect to subreddit
+    try:
+        reddit = praw.Reddit(
+            user_agent = user_agent,
+            client_id = client_id,
+            client_secret = client_secret,
+            username = username,
+            password = password,
+        )
+
+        subreddit = reddit.subreddit(subreddit)
+    except:
+        logging.error('Unexpected error when initializing reddit connection:%s', sys.exc_info()[0])
+        raise
+    
+    stickied_threads = _get_submissions(event["summary"], flair = "Match", stickied = True)
+
+    if stickied_threads:
+        for thread in stickied_threads:
+            _http_request(thread["permalink"] + "/unsticky", "POST")
+            logging.info('Match thread unstickied: %s', thread["title"])
