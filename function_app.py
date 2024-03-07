@@ -6,8 +6,11 @@ This file contains the following Azure Functions:
       and post new articles to subreddit.
     - get_schedule: Scheduled Azure Function to check the Earthquakes match
       schedule and trigger match thread functions when needed.
+    - post_match_thread: On-demand (HTTP) Azure Function to post match threads.
 
 This file also contains the following internal functions:
+    - _get_flair_template: Internal function to retrieve a link flair template from
+      subreddit by flair text.
     - _get_newsarticles: Internal function to parse news articles from the
       Earthquakes website News page.
     - _get_submissions: Internal function to retrieve recent posts in subreddit and filter
@@ -57,7 +60,6 @@ def post_news(timer: func.TimerRequest) -> None:
     logging.debug('Python timer trigger function ran at %s', utc_timestamp)
 
     # Initialize environmental variables.
-    flair_id = os.environ["Reddit_Submission_News_FlairID"]
     resubmit = os.environ["Reddit_Submission_Resubmit"]
     send_replies = os.environ["Reddit_Submission_SendReplies"]
     subreddit = os.environ["Reddit_Subreddit"]
@@ -125,7 +127,7 @@ def post_news(timer: func.TimerRequest) -> None:
                         submit_params = {
                             'title': article['title'],
                             'url': article['link'],
-                            'flair_id': flair_id,
+                            'flair_id': _get_flair_template("Official Source"),
                             'resubmit': resubmit,
                             'send_replies': send_replies
                         }
@@ -205,7 +207,7 @@ def get_schedule(timer: func.TimerRequest) -> None:
     if events:
         yesterday = now + datetime.timedelta(hours = -26, minutes = -2.5)
         tomorrow = now + datetime.timedelta(hours = 12, minutes = 2.5)
-        events = [event for event in events if event["start"] > yesterday and event["start"] < tomorrow]
+        events = [event for event in events if isinstance(event["start"], datetime.datetime) and event["start"] > yesterday and event["start"] < tomorrow]
 
     # Process filtered events and call appropriate match thread functions
     if events:
@@ -225,6 +227,8 @@ def get_schedule(timer: func.TimerRequest) -> None:
             elif event["start"] < now + datetime.timedelta(hours = -2, minutes = 2.5) and event["start"] > now + datetime.timedelta(hours = -2, minutes = -2.5):
                 data["type"] = "postmatch"
                 _http_request(thread_function_url, "POST", data)
+                data["type"] = "motm"
+                _http_request(thread_function_url, "POST", data)
             elif event["start"] < now + datetime.timedelta(hours = -26, minutes = 2.5) and event["start"] > now + datetime.timedelta(hours = -26, minutes = -2.5):
                 _unsticky_match_threads(event)
             else:
@@ -235,22 +239,102 @@ def get_schedule(timer: func.TimerRequest) -> None:
 def post_match_thread(req: func.HttpRequest) -> func.HttpResponse:
     logging.info('Python HTTP trigger function processed a request.')
 
-    name = req.params.get('name')
-    if not name:
-        try:
-            req_body = req.get_json()
-        except ValueError:
-            pass
-        else:
-            name = req_body.get('name')
+    # Retrieve request data.
+    req_body = req.get_json()
+    event = req_body.get('event')
+    thread_type = req_body.get('type')
 
-    if name:
-        return func.HttpResponse(f"Hello, {name}. This HTTP-triggered function executed successfully.")
+    # Initialize environmental variables.
+    send_replies = os.environ["Reddit_Submission_SendReplies"]
+    subreddit = os.environ["Reddit_Subreddit"]
+
+    # Connect to subreddit
+    try:
+        reddit = _init_reddit_connection()
+        subreddit = reddit.subreddit(subreddit)
+    except Exception:
+        logging.error('Unexpected error when initializing reddit connection:%s', sys.exc_info()[0])
+        return func.HttpResponse("Internal Server Error", status_code = 500)
+
+    if thread_type == "prematch":
+        title = "Pre-Match Thread: " + event["summary"]
+        flair_id = _get_flair_template("Pre-Match Thread")
+        selftext = ""
+    elif thread_type == "match":
+        title = "Match Thread: " + event["summary"]
+        flair_id = _get_flair_template("Match Thread")
+        
+        if event["description"].startswith("WATCH LIVE NOW: "):
+            selftext = "MLS Season Pass livestream: " + event['description'].split(": ")[1]
+        else:
+            selftext = ""
+    elif thread_type == "postmatch":
+        title = "Post-Match Thread: " + event["summary"]
+        flair_id = _get_flair_template("Post-Match Thread")
+        selftext = ""
+    elif thread_type == "motm":
+        title = "Man of the Match: " + event["summary"]
+        flair_id = _get_flair_template("Man of the Match")
+        selftext = "One top-level comment for each player. Duplicates will be removed. \
+            If there's already a comment for the player you want to nominate, feel free \
+            to upvote that and add any additional thoughts in a reply underneath the original comment; \
+            open discussion on nominees is welcome outside of top-level nominations."
     else:
-        return func.HttpResponse(
-            "This HTTP-triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response.",
-            status_code=200
-        )
+        logging.error('Invalid thread type: %s', thread_type)
+        return func.HttpResponse("Bad Request", status_code = 400)
+
+    # Submit match thread to subreddit.
+    submit_params = {
+        'title': title,
+        'flair_id': flair_id,
+        'selftext': selftext,
+        'send_replies': send_replies
+    }
+
+    try:
+        subreddit.submit(**submit_params)
+    except Exception:
+        logging.error('Unexpected error when posting match thread (%s): %s', title, sys.exc_info()[0])
+        return func.HttpResponse("Internal Server Error", status_code = 500)
+    else:
+        logging.info('Match thread successfully posted: %s', title)
+        return func.HttpResponse("Match thread successfully posted", status_code = 200)
+    
+# Internal function to retrieve a link flair template from subreddit by flair text.
+def _get_flair_template(flair_text: str) -> str:
+    '''
+    Retrieve a link flair template from subreddit by flair text.
+
+    Args:
+        flair_text: The text of the flair to retrieve the template for.
+
+    Returns:
+        The template ID of the flair.
+
+    Raises:
+        Any exceptions encountered when initializing the reddit connection or retrieving the flair template.
+    '''
+
+    # Initialize environmental variables.
+    subreddit = os.environ["Reddit_Subreddit"]
+
+    # Connect to subreddit
+    try:
+        reddit = _init_reddit_connection()
+        subreddit = reddit.subreddit(subreddit)
+    except:
+        logging.error('Unexpected error when initializing reddit connection:%s', sys.exc_info()[0])
+        raise
+
+    # Retrieve flair template from subreddit
+    try:
+        flair = subreddit.flair.link_templates
+        template = [template for template in flair if template["text"].lower() == flair_text.lower()]
+    except:
+        logging.error('Unexpected error when retrieving flair template:%s', sys.exc_info()[0])
+        raise
+
+    return template[0]["id"]
 
 # Internal function to retrieve news articles from Earthquakes website.
 def _get_newsarticles():
@@ -394,6 +478,20 @@ def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[
 
 # Internal function to make HTTP requests.
 def _http_request(url, method, data: Optional[dict] = None) -> bytes:
+    '''
+    Make HTTP requests.
+    
+    Args:
+        url: The URL to make the request to.
+        method: The method to use for the request.
+        data: The data to send with the request.
+        
+    Returns:
+        The content of the response.
+        
+    Raises:
+        Any exceptions encountered when making the request.
+    '''
     req = request.Request(url, method = method)
     req.add_header('Content-Type', 'application/json')
 
