@@ -234,9 +234,31 @@ def get_schedule(timer: func.TimerRequest) -> None:
             else:
                 logging.debug("Event outside of window of interest: %s, %s", event["summary"], event["start"])
 
-# On-demand Azure Function to post match threads.
+# On-demand (HTTP) Azure Function to post match threads.
 @app.route(methods = ["POST"], auth_level = func.AuthLevel.FUNCTION)
 def post_match_thread(req: func.HttpRequest) -> func.HttpResponse:
+    '''
+    On-demand (HTTP) Azure Function to post match threads.
+    
+    Args:
+        req: The Azure Function HTTP request.
+        
+    Returns:
+        A response indicating the success or failure of the match thread posting.
+        
+    Raises:
+        Any exceptions encountered when initializing the reddit connection, retrieving subreddit posts, or posting match threads.
+        
+    Notes:
+        The POST request body should contain a JSON object with the following properties:
+            - event: The event to post the match thread for.
+            - type: The type of match thread to post, which should be one of the following:
+                - prematch
+                - match
+                - postmatch
+                - motm                
+    '''
+
     logging.info('Python HTTP trigger function processed a request.')
 
     # Retrieve request data.
@@ -263,7 +285,7 @@ def post_match_thread(req: func.HttpRequest) -> func.HttpResponse:
     elif thread_type == "match":
         title = "Match Thread: " + event["summary"]
         flair_id = _get_flair_template("Match Thread")
-        
+
         if event["description"].startswith("WATCH LIVE NOW: "):
             selftext = "MLS Season Pass livestream: " + event['description'].split(": ")[1]
         else:
@@ -299,7 +321,7 @@ def post_match_thread(req: func.HttpRequest) -> func.HttpResponse:
     else:
         logging.info('Match thread successfully posted: %s', title)
         return func.HttpResponse("Match thread successfully posted", status_code = 200)
-    
+
 # Internal function to retrieve a link flair template from subreddit by flair text.
 def _get_flair_template(flair_text: str) -> str:
     '''
@@ -492,6 +514,7 @@ def _http_request(url, method, data: Optional[dict] = None) -> bytes:
     Raises:
         Any exceptions encountered when making the request.
     '''
+
     req = request.Request(url, method = method)
     req.add_header('Content-Type', 'application/json')
 
@@ -579,5 +602,5 @@ def _unsticky_match_threads(event):
             except:
                 logging.error('Unexpected error when unstickying match thread:%s', sys.exc_info()[0])
                 raise
-            
+
             logging.info('Match thread unstickied: %s', thread["title"])
