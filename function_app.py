@@ -163,8 +163,7 @@ def post_news(timer: func.TimerRequest) -> None:
     gc.collect()
 
 # Scheduled Azure Function to check Earthquakes match schedule and trigger match thread Function when needed.
-@app.timer_trigger(schedule="0 */5 0-3,14-23 * * *", arg_name="timer", run_on_startup=True,
-              use_monitor=False)
+@app.schedule(schedule="0 */5 0-3,14-23 * * *", arg_name="timer", run_on_startup=True, use_monitor=False)
 def get_schedule(timer: func.TimerRequest) -> None:
     '''
     Scheduled Azure Function to check the Earthquakes match schedule and trigger match thread functions when needed.
@@ -180,6 +179,7 @@ def get_schedule(timer: func.TimerRequest) -> None:
     '''
 
     now = datetime.datetime.now(datetime.timezone.utc)
+    logging.debug("Now: %s", now.isoformat())
 
     # Initialize environmental variables
     schedule_url = os.environ["Schedule_URL"]
@@ -214,6 +214,8 @@ def get_schedule(timer: func.TimerRequest) -> None:
         yesterday = now + datetime.timedelta(hours = -26, minutes = -2.5)
         tomorrow = now + datetime.timedelta(hours = 12, minutes = 2.5)
         events = [event for event in events if isinstance(event["start"], datetime.datetime) and event["start"] > yesterday and event["start"] < tomorrow]
+    else:
+        logging.warning("No events found in calendar")
 
     # Process filtered events and call appropriate match thread functions
     if events:
@@ -251,6 +253,8 @@ def get_schedule(timer: func.TimerRequest) -> None:
                 _unsticky_match_threads(event)
             else:
                 logging.debug("Event outside of window of interest: %s, %s", event["summary"], event["start"])
+    else:
+        logging.warning("No events found in current window")
 
 # On-demand (HTTP) Azure Function to post match threads.
 @app.route(methods = ["POST"], auth_level = func.AuthLevel.FUNCTION)
