@@ -2,7 +2,10 @@
     "logging": {
         "fileLoggingMode": "debugOnly",
         "logLevel": {
-            "default": "None"
+            "default": "Warning",
+            "Host.Results": "Information",
+            "Host.Aggregator": "Information",
+            "Function": "Debug"
         }
     },
     "version": "2.0",
