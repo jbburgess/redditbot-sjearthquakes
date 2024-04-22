@@ -40,7 +40,7 @@ import tzdata
 
 app = func.FunctionApp()
 
-@app.schedule(schedule="0 */5 0-3,14-23 * * *", arg_name="timer", run_on_startup=True,
+@app.schedule(schedule="0 */5 0-3,14-23 * * *", arg_name="timer", run_on_startup=False,
               use_monitor=False)
 def post_news(timer: func.TimerRequest) -> None:
     '''
@@ -163,7 +163,7 @@ def post_news(timer: func.TimerRequest) -> None:
     gc.collect()
 
 # Scheduled Azure Function to check Earthquakes match schedule and trigger match thread Function when needed.
-@app.schedule(schedule="0 */5 0-3,14-23 * * *", arg_name="timer", run_on_startup=True, use_monitor=False)
+@app.schedule(schedule="0 */5 0-3,14-23 * * *", arg_name="timer", run_on_startup=False, use_monitor=False)
 def get_schedule(timer: func.TimerRequest) -> None:
     '''
     Scheduled Azure Function to check the Earthquakes match schedule and trigger match thread functions when needed.
