@@ -179,19 +179,19 @@ def get_schedule(timer: func.TimerRequest) -> None:
     '''
 
     now = datetime.datetime.now(datetime.timezone.utc)
-    logging.debug("Now: %s", now.isoformat())
+    logging.info("Now: %s", now.isoformat())
 
     # Initialize environmental variables
     schedule_url = os.environ["Schedule_URL"]
     thread_function_url = os.environ["Reddit_MatchThread_FunctionURL"]
 
     # Retrieve .ics file from website and parse events.
-    logging.debug("Retrieving .ics file from website: %s", schedule_url)
+    logging.info("Retrieving .ics file from website: %s", schedule_url)
     response = requests.get(schedule_url, timeout = 10)
 
 
     if response.status_code == 200:
-        logging.debug("Retrieved .ics file")
+        logging.info("Retrieved .ics file")
         ics_data = response.text
         calendar = Calendar.from_ical(ics_data)
         events = []
@@ -210,7 +210,7 @@ def get_schedule(timer: func.TimerRequest) -> None:
 
     # Filter to events happening only in the window of interest.
     if events:
-        logging.debug("Parsed %s events from calendar", len(events))
+        logging.info("Parsed %s events from calendar", len(events))
         yesterday = now + datetime.timedelta(hours = -26, minutes = -2.5)
         tomorrow = now + datetime.timedelta(hours = 12, minutes = 2.5)
         events = [event for event in events if isinstance(event["start"], datetime.datetime) and event["start"] > yesterday and event["start"] < tomorrow]
@@ -219,7 +219,7 @@ def get_schedule(timer: func.TimerRequest) -> None:
 
     # Process filtered events and call appropriate match thread functions
     if events:
-        logging.debug("Found events in current window: %s", events)
+        logging.info("Found events in current window: %s", events)
 
         # Initialize data to be sent to match thread function
         data = {
@@ -229,18 +229,18 @@ def get_schedule(timer: func.TimerRequest) -> None:
         # Check event time relative to now and call match thread function for appropriate thread type as needed.
         for event in events:
             if event["start"] < now + datetime.timedelta(hours = 12, minutes = 2.5) and event["start"] > now + datetime.timedelta(hours = 12, minutes = -2.5):
-                logging.debug("Posting prematch thread for event: %s, %s", event["summary"], event["start"])
+                logging.info("Posting prematch thread for event: %s, %s", event["summary"], event["start"])
                 data["type"] = "prematch"
                 data["stickied"] = True
                 _http_request(thread_function_url, "POST", data)
             elif event["start"] < now + datetime.timedelta(hours = 1, minutes = 2.5) and event["start"] > now + datetime.timedelta(hours = 1, minutes = -2.5):
-                logging.debug("Posting match thread for event: %s, %s", event["summary"], event["start"])
+                logging.info("Posting match thread for event: %s, %s", event["summary"], event["start"])
                 data["type"] = "match"
                 data["stickied"] = True
                 data["suggested_sort"] = "new"
                 _http_request(thread_function_url, "POST", data)
             elif event["start"] < now + datetime.timedelta(hours = -2, minutes = 2.5) and event["start"] > now + datetime.timedelta(hours = -2, minutes = -2.5):
-                logging.debug("Posting postmatch and MOTM threads for event: %s, %s", event["summary"], event["start"])
+                logging.info("Posting postmatch and MOTM threads for event: %s, %s", event["summary"], event["start"])
                 data["type"] = "postmatch"
                 data["stickied"] = True
                 _http_request(thread_function_url, "POST", data)
@@ -249,10 +249,10 @@ def get_schedule(timer: func.TimerRequest) -> None:
                 data["suggested_sort"] = "new"
                 _http_request(thread_function_url, "POST", data)
             elif event["start"] < now + datetime.timedelta(hours = -26, minutes = 2.5) and event["start"] > now + datetime.timedelta(hours = -26, minutes = -2.5):
-                logging.debug("Unstickying match threads for event: %s, %s", event["summary"], event["start"])
+                logging.info("Unstickying match threads for event: %s, %s", event["summary"], event["start"])
                 _unsticky_match_threads(event)
             else:
-                logging.debug("Event outside of window of interest: %s, %s", event["summary"], event["start"])
+                logging.info("Event outside of window of interest: %s, %s", event["summary"], event["start"])
     else:
         logging.warning("No events found in current window")
 
