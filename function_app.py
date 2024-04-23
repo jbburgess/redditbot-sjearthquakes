@@ -65,7 +65,7 @@ def post_news(timer: func.TimerRequest) -> None:
     # Initialize environmental variables.
     resubmit = os.environ["Reddit_Submission_Resubmit"]
     send_replies = os.environ["Reddit_Submission_SendReplies"]
-    subreddit = os.environ["Reddit_Subreddit"]
+    subreddit = os.environ["Reddit_Subreddit_News"]
 
     cutoff_days = int(os.environ["NewsSite_ArticleCutoffDays"])
 
