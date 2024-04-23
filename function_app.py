@@ -130,7 +130,7 @@ def post_news(timer: func.TimerRequest) -> None:
                         submit_params = {
                             'title': article['title'],
                             'url': article['link'],
-                            'flair_id': _get_flair_template("Official Source"),
+                            'flair_id': "6fa9621a-0ec2-11e8-9551-0e36fa42c4bc", #_get_flair_template("Official Source"),
                             'resubmit': resubmit,
                             'send_replies': send_replies
                         }
