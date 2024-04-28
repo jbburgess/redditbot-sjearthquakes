@@ -620,17 +620,16 @@ def _http_request(url, method, data: Optional[dict] = None) -> bytes:
 
     logging.debug('Making HTTP request: url = %s, method = %s, data = %s', url, method, data)
 
-    req = request.Request(url, method = method)
-    req.add_header('Content-Type', 'application/json')
+    headers = {'Content-Type': 'application/json'}
 
     if data:
         data = json.dumps(data, default=lambda o: o.isoformat() if isinstance(o, datetime.datetime) else o)
-        data = data.encode()
-        with request.urlopen(req, data = data) as r:
-            content = r.read()
+        response = requests.request(method, url, headers=headers, data=data)
     else:
-        with request.urlopen(req) as r:
-            content = r.read()
+        response = requests.request(method, url, headers=headers)
+
+    response.raise_for_status()
+    content = response.content
 
     return content
 
