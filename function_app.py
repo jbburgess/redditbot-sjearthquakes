@@ -392,7 +392,7 @@ def _get_flair_template(flair_text: str) -> str:
 
     logging.debug('Retrieving flair template: %s', flair_text)
 
-    # Initialize environmental variables.
+    # Initialize environmental variables. aH TEEHEE
     subreddit = os.environ["Reddit_Subreddit"]
 
     # Connect to subreddit
@@ -487,7 +487,7 @@ def _get_newsarticles():
 
     return articles
 
-# Internal function to retrieve the current MLS standings and team stats.
+# Internal function to retrieve the current MLS standings and team stats. Woahhh - Thanner
 def _get_standings() -> dict:
     '''
     Retrieve the current MLS standings and team stats.
@@ -502,7 +502,7 @@ def _get_standings() -> dict:
         Any exceptions encountered when retrieving the current MLS standings and team stats.
     '''
 
-    # Initialize environmental variables.
+    # Initialize environmental variables. "What does this do?" - Thanner
     standings_url = os.environ["StatsSite_Standings_URL"]
 
     # Retrieve current MLS standings and team stats.
@@ -514,7 +514,7 @@ def _get_standings() -> dict:
 
     data = []
 
-    # Parse and combine the Eastern and Western Conference standings tables into a single dictionary.
+    # Parse and combine the Eastern and Western Conference standings tables into a single dictionary. Thanner was here.
     for table in tables:
         if table.attrs['id'].endswith("-Conference_overall"):
             table_body = table.find('tbody')
@@ -531,7 +531,7 @@ def _get_standings() -> dict:
     
     return data
 
-# Internal function to retrieve recent posts in subreddit and filter to threads matching the provided name, flair, and stickied status.
+# Internal function to retrieve recent posts in subreddit and filter to threads matching the provided name, flair, and stickied status. Thanner was also here.
 def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[bool] = None) -> list:
     '''
     Retrieve recent posts in subreddit and filter to threads matching the provided name, flair, and stickied status.
