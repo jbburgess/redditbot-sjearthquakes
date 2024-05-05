@@ -164,7 +164,7 @@ def post_news(timer: func.TimerRequest) -> None:
     gc.collect()
 
 # Scheduled Azure Function to check Earthquakes match schedule and trigger match thread Function when needed.
-@app.schedule(schedule="0 */5 0-3,14-23 * * *", arg_name="timer", run_on_startup=False, use_monitor=False)
+@app.schedule(schedule="0 */5 0-5,11-15,22-23 * * *", arg_name="timer", run_on_startup=False, use_monitor=False)
 def get_schedule(timer: func.TimerRequest) -> None:
     '''
     Scheduled Azure Function to check the Earthquakes match schedule and trigger match thread functions when needed.
@@ -392,7 +392,7 @@ def _get_flair_template(flair_text: str) -> str:
 
     logging.debug('Retrieving flair template: %s', flair_text)
 
-    # Initialize environmental variables.
+    # Initialize environmental variables. aH TEEHEE
     subreddit = os.environ["Reddit_Subreddit"]
 
     # Connect to subreddit
@@ -487,7 +487,7 @@ def _get_newsarticles():
 
     return articles
 
-# Internal function to retrieve the current MLS standings and team stats.
+# Internal function to retrieve the current MLS standings and team stats. Woahhh - Thanner
 def _get_standings() -> dict:
     '''
     Retrieve the current MLS standings and team stats.
@@ -502,7 +502,7 @@ def _get_standings() -> dict:
         Any exceptions encountered when retrieving the current MLS standings and team stats.
     '''
 
-    # Initialize environmental variables.
+    # Initialize environmental variables. "What does this do?" - Thanner
     standings_url = os.environ["StatsSite_Standings_URL"]
 
     # Retrieve current MLS standings and team stats.
@@ -514,7 +514,7 @@ def _get_standings() -> dict:
 
     data = []
 
-    # Parse and combine the Eastern and Western Conference standings tables into a single dictionary.
+    # Parse and combine the Eastern and Western Conference standings tables into a single dictionary. Thanner was here.
     for table in tables:
         if table.attrs['id'].endswith("-Conference_overall"):
             table_body = table.find('tbody')
@@ -531,7 +531,7 @@ def _get_standings() -> dict:
     
     return data
 
-# Internal function to retrieve recent posts in subreddit and filter to threads matching the provided name, flair, and stickied status.
+# Internal function to retrieve recent posts in subreddit and filter to threads matching the provided name, flair, and stickied status. Thanner was also here.
 def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[bool] = None) -> list:
     '''
     Retrieve recent posts in subreddit and filter to threads matching the provided name, flair, and stickied status.
@@ -548,7 +548,7 @@ def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[
         Any exceptions encountered when initializing the reddit connection or retrieving subreddit posts.
     '''
 
-    logging.debug('Retrieving subreddit posts: name = %s, flair = %s, stickied = %s', name, flair, stickied)
+    logging.info('Retrieving subreddit posts: name = %s, flair = %s, stickied = %s', name, flair, stickied)
 
     # Initialize environmental variables.
     subreddit = os.environ["Reddit_Subreddit"]
@@ -565,7 +565,7 @@ def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[
     submissions = []
 
     try:
-        logging.debug('Retrieving subreddit posts.')
+        logging.info('Retrieving subreddit posts.')
 
         for submission in subreddit.new(limit=100):
             submission_dict = {
@@ -590,15 +590,17 @@ def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[
 
         # If a flair was provided, filter to threads matching the provided flair.
         if flair:
+            logging.info('Filtering subreddit posts to flair: %s', flair)
             submissions = [submission for submission in submissions if submission['link_flair_text'] and flair.lower() in submission['link_flair_text'].lower()]
 
         # If stickied is provided, filter to threads matching the provided stickied status.
         if stickied:
+            logging.info('Filtering subreddit posts to stickied')
             submissions = [submission for submission in submissions if submission['stickied'] == stickied]
     else:
         logging.error('No subreddit posts retrieved.')
 
-    logging.debug('Subreddit posts filtered to: %s', submissions)
+    logging.info('Subreddit posts filtered to: %s', submissions)
     return submissions
 
 # Internal function to make HTTP requests.
@@ -620,17 +622,16 @@ def _http_request(url, method, data: Optional[dict] = None) -> bytes:
 
     logging.debug('Making HTTP request: url = %s, method = %s, data = %s', url, method, data)
 
-    req = request.Request(url, method = method)
-    req.add_header('Content-Type', 'application/json')
+    headers = {'Content-Type': 'application/json'}
 
     if data:
         data = json.dumps(data, default=lambda o: o.isoformat() if isinstance(o, datetime.datetime) else o)
-        data = data.encode()
-        with request.urlopen(req, data = data) as r:
-            content = r.read()
+        response = requests.request(method, url, headers=headers, data=data)
     else:
-        with request.urlopen(req) as r:
-            content = r.read()
+        response = requests.request(method, url, headers=headers)
+
+    response.raise_for_status()
+    content = response.content
 
     return content
 
@@ -688,7 +689,7 @@ def _unsticky_match_threads(event):
         Any exceptions encountered when initializing the reddit connection or unstickying match threads.
     '''
 
-    logging.debug('Unstickying match threads for event: %s, %s', event["summary"], event["start"])
+    logging.info('Processing request to unsticky match threads for event: %s, %s', event["summary"], event["start"])
 
     # Initialize environmental variables.
     subreddit = os.environ["Reddit_Subreddit"]
@@ -715,3 +716,5 @@ def _unsticky_match_threads(event):
                 raise
 
             logging.info('Match thread unstickied: %s', thread["title"])
+    else:
+        logging.warning('No stickied match threads found for event: %s, %s', event["summary"], event["start"])
