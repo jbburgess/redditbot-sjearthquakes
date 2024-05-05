@@ -548,7 +548,7 @@ def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[
         Any exceptions encountered when initializing the reddit connection or retrieving subreddit posts.
     '''
 
-    logging.debug('Retrieving subreddit posts: name = %s, flair = %s, stickied = %s', name, flair, stickied)
+    logging.info('Retrieving subreddit posts: name = %s, flair = %s, stickied = %s', name, flair, stickied)
 
     # Initialize environmental variables.
     subreddit = os.environ["Reddit_Subreddit"]
@@ -565,7 +565,7 @@ def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[
     submissions = []
 
     try:
-        logging.debug('Retrieving subreddit posts.')
+        logging.info('Retrieving subreddit posts.')
 
         for submission in subreddit.new(limit=100):
             submission_dict = {
@@ -590,15 +590,17 @@ def _get_submissions(name: str, flair: Optional[str] = None, stickied: Optional[
 
         # If a flair was provided, filter to threads matching the provided flair.
         if flair:
+            logging.info('Filtering subreddit posts to flair: %s', flair)
             submissions = [submission for submission in submissions if submission['link_flair_text'] and flair.lower() in submission['link_flair_text'].lower()]
 
         # If stickied is provided, filter to threads matching the provided stickied status.
         if stickied:
+            logging.info('Filtering subreddit posts to stickied')
             submissions = [submission for submission in submissions if submission['stickied'] == stickied]
     else:
         logging.error('No subreddit posts retrieved.')
 
-    logging.debug('Subreddit posts filtered to: %s', submissions)
+    logging.info('Subreddit posts filtered to: %s', submissions)
     return submissions
 
 # Internal function to make HTTP requests.
@@ -687,7 +689,7 @@ def _unsticky_match_threads(event):
         Any exceptions encountered when initializing the reddit connection or unstickying match threads.
     '''
 
-    logging.debug('Unstickying match threads for event: %s, %s', event["summary"], event["start"])
+    logging.info('Processing request to unsticky match threads for event: %s, %s', event["summary"], event["start"])
 
     # Initialize environmental variables.
     subreddit = os.environ["Reddit_Subreddit"]
@@ -714,3 +716,5 @@ def _unsticky_match_threads(event):
                 raise
 
             logging.info('Match thread unstickied: %s', thread["title"])
+    else:
+        logging.warning('No stickied match threads found for event: %s, %s', event["summary"], event["start"])
