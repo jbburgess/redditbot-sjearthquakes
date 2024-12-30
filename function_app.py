@@ -440,7 +440,7 @@ def _get_newsarticles():
     page = requests.get(news_url, headers=headers, timeout=5)
     soup = BeautifulSoup(page.content, 'html.parser')
     results = soup.find("section", class_='d3-l-grid--outer d3-l-section-row')
-    article_elems = results.find_all("div", class_='d3-l-col__col-3')
+    article_elems = results.find_all("li", class_='d3-l-col__col-3')
 
     if article_elems:
         cutoffutcutc = datetime.datetime.utcnow() - datetime.timedelta(days = cutoff_days)
@@ -485,7 +485,8 @@ def _get_newsarticles():
     del soup
     del results
 
-    return articles
+    if articles:
+        return articles
 
 # Internal function to retrieve the current MLS standings and team stats. Woahhh - Thanner
 def _get_standings() -> dict:
