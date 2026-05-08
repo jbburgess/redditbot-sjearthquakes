@@ -452,8 +452,8 @@ def _get_newsarticles():
             href = article_elem.a['href']
             link = base_url + href
 
-            # If article is a "NEWS:" post and not a duplicate, add to articles array.
-            if "NEWS: " in title:
+            # If article is not a match preview/recap post and not a duplicate, add to articles array.
+            if "MATCH PREVIEW: " not in title and "MATCH RECAP: " not in title:
                 if link in [i['link'] for i in articles]:
                     logging.debug('Duplicate article skipped: %s', title)
                 else:
