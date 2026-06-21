@@ -2,8 +2,9 @@
  * Poll the ESPN schedule and trigger match-thread actions when they're due.
  */
 
-import { redis } from '@devvit/web/server';
+import { redis, settings } from '@devvit/web/server';
 import type { MatchEvent, ThreadType } from '../../shared/types';
+import { CREATE_SETTING_KEY } from '../../shared/config';
 import { fetchSchedule } from '../espn';
 import { handlePostThread } from './postThread';
 import { handleUnstickyThreads } from './unstickyThreads';
@@ -31,7 +32,7 @@ const TIMED_OFFSETS = {
  * rather than at a fixed offset. Order matters: the post-match thread is
  * created before the man-of-the-match thread.
  */
-const MATCH_ENDED_ACTIONS: ScheduleAction[] = ['postmatch', 'motm'];
+const MATCH_ENDED_ACTIONS: ThreadType[] = ['postmatch', 'motm'];
 
 /**
  * Once an action's scheduled time passes, it stays "due" for this long. Wide
@@ -51,6 +52,14 @@ function isInWindowOfInterest(kickoff: number, now: number): boolean {
 /** Redis key marking an action as already performed for an event. */
 function dedupKey(eventId: string, action: ScheduleAction): string {
   return `sched:done:${eventId}:${action}`;
+}
+
+/**
+ * Whether automatic creation of the given thread type is enabled. Mods can
+ * toggle each type via subreddit settings; an unset value defaults to enabled.
+ */
+async function autoCreateEnabled(type: ThreadType): Promise<boolean> {
+  return (await settings.get<boolean>(CREATE_SETTING_KEY[type])) !== false;
 }
 
 export async function alreadyDone(eventId: string, action: ScheduleAction): Promise<boolean> {
@@ -111,7 +120,10 @@ export async function handleCheckSchedule(subredditName: string): Promise<void> 
     for (const action of Object.keys(TIMED_OFFSETS) as (keyof typeof TIMED_OFFSETS)[]) {
       const actionTime = kickoff + TIMED_OFFSETS[action];
       const due = now >= actionTime && now < actionTime + DUE_WINDOW;
-      if (due) await fireOnce(subredditName, event, action, now);
+      if (!due) continue;
+      // Unsticky always runs; thread posts respect their per-type toggle.
+      if (action !== 'unsticky' && !(await autoCreateEnabled(action))) continue;
+      await fireOnce(subredditName, event, action, now);
     }
 
     // While the match is live, keep the match thread's body up to date.
@@ -126,6 +138,7 @@ export async function handleCheckSchedule(subredditName: string): Promise<void> 
     // Post-match actions fire once ESPN reports the match has finished.
     if (event.state === 'post') {
       for (const action of MATCH_ENDED_ACTIONS) {
+        if (!(await autoCreateEnabled(action))) continue;
         await fireOnce(subredditName, event, action, now);
       }
     }

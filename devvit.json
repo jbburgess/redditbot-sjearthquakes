@@ -51,27 +51,46 @@
       },
       {
         "label": "Post post-match thread",
-        "description": "Manually post the post-match thread for the current or next match",
+        "description": "Manually post the post-match thread for the current or previous match",
         "forUserType": "moderator",
         "location": "subreddit",
         "endpoint": "/internal/menu/post-postmatch"
       },
       {
         "label": "Post Man of the Match thread",
-        "description": "Manually post the Man of the Match thread for the current or next match",
+        "description": "Manually post the Man of the Match thread for the current or previous match",
         "forUserType": "moderator",
         "location": "subreddit",
         "endpoint": "/internal/menu/post-motm"
+      },
+      {
+        "label": "Reset thread markers (dev)",
+        "description": "Clear dedup markers so match threads can be re-posted during testing",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/reset-markers"
       }
     ]
   },
   "settings": {
     "subreddit": {
+      "createPreMatch": {
+        "type": "boolean",
+        "label": "Create pre-match threads",
+        "helpText": "Whether to automatically create pre-match threads for upcoming matches.",
+        "defaultValue": true
+      },
       "flairPreMatch": {
         "type": "string",
         "label": "Pre-match thread flair text",
         "helpText": "Exact text of the link flair to apply to pre-match threads.",
         "defaultValue": "Pre Match"
+      },
+      "createMatch": {
+        "type": "boolean",
+        "label": "Create match threads",
+        "helpText": "Whether to automatically create match threads when matches start.",
+        "defaultValue": true
       },
       "flairMatch": {
         "type": "string",
@@ -79,11 +98,23 @@
         "helpText": "Exact text of the link flair to apply to match threads.",
         "defaultValue": "Match Thread"
       },
+      "createPostMatch": {
+        "type": "boolean",
+        "label": "Create post-match threads",
+        "helpText": "Whether to automatically create post-match threads after matches end.",
+        "defaultValue": true
+      },
       "flairPostMatch": {
         "type": "string",
         "label": "Post-match thread flair text",
         "helpText": "Exact text of the link flair to apply to post-match threads.",
         "defaultValue": "Post Match"
+      },
+      "createMotm": {
+        "type": "boolean",
+        "label": "Create Man of the Match threads",
+        "helpText": "Whether to automatically create Man of the Match threads after matches end.",
+        "defaultValue": true
       },
       "flairMotm": {
         "type": "string",

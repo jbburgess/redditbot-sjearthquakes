@@ -13,6 +13,7 @@ import { handlePostThread } from './jobs/postThread';
 import { handleUnstickyThreads } from './jobs/unstickyThreads';
 import { handleCheckSchedule } from './jobs/checkSchedule';
 import { handleManualPost } from './jobs/manualThread';
+import { handleResetMarkers } from './jobs/resetMarkers';
 
 const app = new Hono();
 
@@ -115,6 +116,31 @@ registerManualPost('/internal/menu/post-prematch', 'prematch');
 registerManualPost('/internal/menu/post-match', 'match');
 registerManualPost('/internal/menu/post-postmatch', 'postmatch');
 registerManualPost('/internal/menu/post-motm', 'motm');
+
+// Dev-only: clear the Redis dedup/bookkeeping markers so threads can be
+// re-posted during testing. Remove or restrict before production cutover.
+app.post('/internal/menu/reset-markers', async (c) => {
+  void (await c.req.json<MenuItemRequest>());
+  try {
+    const count = await handleResetMarkers();
+    return c.json<UiResponse>(
+      {
+        showToast: {
+          text: `Cleared thread markers for ${count} matches`,
+          appearance: 'success',
+        },
+      },
+      200
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Failed to reset thread markers:', message, err);
+    return c.json<UiResponse>(
+      { showToast: { text: `Failed: ${message || 'unknown error'}`, appearance: 'neutral' } },
+      200
+    );
+  }
+});
 
 serve({
   fetch: app.fetch,

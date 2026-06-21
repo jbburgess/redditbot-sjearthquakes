@@ -4,11 +4,23 @@ import type { MatchEvent, ThreadType } from './types';
 
 /** Subreddit-scoped setting keys (declared in devvit.json, editable by mods). */
 export const SETTING_KEYS = {
+  createPreMatch: 'createPreMatch',
+  createMatch: 'createMatch',
+  createPostMatch: 'createPostMatch',
+  createMotm: 'createMotm',
   flairPreMatch: 'flairPreMatch',
   flairMatch: 'flairMatch',
   flairPostMatch: 'flairPostMatch',
   flairMotm: 'flairMotm',
 } as const;
+
+/** Setting key toggling automatic creation of each thread type. */
+export const CREATE_SETTING_KEY: Record<ThreadType, string> = {
+  prematch: SETTING_KEYS.createPreMatch,
+  match: SETTING_KEYS.createMatch,
+  postmatch: SETTING_KEYS.createPostMatch,
+  motm: SETTING_KEYS.createMotm,
+};
 
 /** Fallback flair text used when a setting is blank. */
 export const DEFAULT_FLAIR: Record<ThreadType, string> = {
