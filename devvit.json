@@ -1,6 +1,6 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
-  "name": "sjquakes-bot",
+  "name": "sjquakesbot",
   "server": {
     "dir": "dist/server",
     "entry": "index.cjs"
