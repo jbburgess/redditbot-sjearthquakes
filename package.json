@@ -1,0 +1,29 @@
+{
+  "name": "sjquakes-bot",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Mod bot for r/SJEarthquakes: posts news articles and match threads, manages flairs, and handles scheduling.",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "type-check": "tsc --noEmit",
+    "login": "devvit login",
+    "playtest": "devvit playtest",
+    "upload": "devvit upload"
+  },
+  "dependencies": {
+    "@devvit/public-api": "0.13.4",
+    "@devvit/web": "0.13.4",
+    "express": "5.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.1",
+    "@types/express-serve-static-core": "5.1.0",
+    "@types/node": "22.18.0",
+    "devvit": "0.13.4",
+    "typescript": "5.8.3",
+    "vite": "7.3.2"
+  },
+  "license": "BSD-3-Clause"
+}

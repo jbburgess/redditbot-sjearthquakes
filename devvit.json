@@ -1,0 +1,78 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "sjquakes-bot",
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "permissions": {
+    "redis": true,
+    "reddit": {
+      "enable": true,
+      "scope": "moderator"
+    },
+    "http": {
+      "enable": true,
+      "domains": [
+        "site.api.espn.com",
+        "www.sjearthquakes.com"
+      ]
+    }
+  },
+  "scheduler": {
+    "tasks": {
+      "post-thread": {
+        "endpoint": "/internal/scheduler/post-thread"
+      },
+      "unsticky-threads": {
+        "endpoint": "/internal/scheduler/unsticky-threads"
+      }
+    }
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "Post test match thread",
+        "description": "Posts a sample pre-match thread to validate the bot",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/test-match-thread"
+      }
+    ]
+  },
+  "settings": {
+    "subreddit": {
+      "flairPreMatch": {
+        "type": "string",
+        "label": "Pre-match thread flair text",
+        "helpText": "Exact text of the link flair to apply to pre-match threads.",
+        "defaultValue": "Pre Match"
+      },
+      "flairMatch": {
+        "type": "string",
+        "label": "Match thread flair text",
+        "helpText": "Exact text of the link flair to apply to match threads.",
+        "defaultValue": "Match Thread"
+      },
+      "flairPostMatch": {
+        "type": "string",
+        "label": "Post-match thread flair text",
+        "helpText": "Exact text of the link flair to apply to post-match threads.",
+        "defaultValue": "Post Match"
+      },
+      "flairMotm": {
+        "type": "string",
+        "label": "Man of the Match thread flair text",
+        "helpText": "Exact text of the link flair to apply to Man of the Match threads.",
+        "defaultValue": "Man of the Match"
+      }
+    }
+  },
+  "dev": {
+    "subreddit": "SJEarthquakes_dev"
+  },
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build"
+  }
+}
