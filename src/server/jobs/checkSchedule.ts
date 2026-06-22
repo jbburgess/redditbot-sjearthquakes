@@ -156,8 +156,9 @@ export async function handleCheckSchedule(subredditName: string): Promise<void> 
       await fireOnce(subredditName, event, action, now);
     }
 
-    // While the match is live, keep the match thread's body up to date.
-    if (event.state === 'in') {
+    // Keep the match thread's body up to date prior to kickoff and while the match is live
+    const inPreKickoffWindow = now >= kickoff + offsets.match && now < kickoff;
+    if (event.state === 'in' || inPreKickoffWindow) {
       try {
         await handleUpdateMatchThread(subredditName, event);
       } catch (err) {
