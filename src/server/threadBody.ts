@@ -79,7 +79,7 @@ function renderEvents(detail: MatchDetail): string {
   }
   return detail.events
     .map((e) => {
-      const minute = e.minute ? `**${e.minute}** ` : '';
+      const minute = `**${e.minute || "0'"}** `;
       const emoji = eventEmoji(e.type);
       const prefix = emoji ? `${emoji} ` : '';
       const text = e.scoring ? `**${e.text}**` : e.text;
