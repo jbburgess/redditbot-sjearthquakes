@@ -29,7 +29,7 @@ function render(template: string, vars: Record<string, string>): string {
 }
 
 function formatPlayer(player: LineupPlayer): string {
-  const number = player.jersey ? `#${player.jersey} ` : '';
+  const number = player.jersey ? `\\#${player.jersey} ` : '';
   const suffix =
     player.subbedIn && player.subbedInAt
       ? ` (${player.subbedInAt})`
@@ -41,9 +41,9 @@ function formatPlayer(player: LineupPlayer): string {
 
 function renderTeamLineup(lineup: TeamLineup): string {
   const formation = lineup.formation ? ` (${lineup.formation})` : '';
-  const xi = lineup.starters.map(formatPlayer).join(', ');
+  const xi = lineup.starters.map(formatPlayer).join('\n- ');
   const subs = lineup.subs.map(formatPlayer).join(', ');
-  let section = `**${lineup.teamName}${formation}**\n\n**Starting XI:** ${xi || PLACEHOLDER}`;
+  let section = `**${lineup.teamName}${formation}**\n\n**Starting XI:**\n- ${xi || PLACEHOLDER}`;
   if (subs) section += `\n\n**Subs:** ${subs}`;
   return section;
 }

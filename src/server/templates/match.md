@@ -12,6 +12,15 @@
 
 ---
 
+### FORM
+
+| Team | Record (W-D-L) | Points | Last 5 |
+|------|:--------------:|:------:|:------:|
+| {{homeTeam}} | {{homeRecord}} | {{homePoints}} | {{homeForm}} |
+| {{awayTeam}} | {{awayRecord}} | {{awayPoints}} | {{awayForm}} |
+
+---
+
 ### LINEUPS
 
 {{lineups}}
