@@ -1,6 +1,6 @@
-# San Jose Earthquakes Match Thread Bot
+# r/SJEarthquakes Bot
 
-An automated match-thread bot for the San Jose Earthquakes subreddit. It follows the
+A mod bot for the San Jose Earthquakes subreddit (`r/SJEarthquakes`). It follows the
 club's schedule and keeps the community's game-day discussion organized without any
 manual effort from the mod team.
 
@@ -18,8 +18,8 @@ manual effort from the mod team.
   members can upvote their pick. The thread is kept tidy by removing stray top-level
   comments during its active voting window.
 - **Thread housekeeping** — applies the correct link flair to each thread, stickies and
-  later un-stickies threads at the right times, and locks each thread once its discussion
-  window has passed.
+  later un-stickies threads at the right times, and (optionally) locks each thread once its
+  active window has passed.
 
 All schedule and match data is sourced from ESPN. Moderators can also post any thread
 on demand from the subreddit menu, and toggle each thread type on or off in the app's
@@ -30,8 +30,11 @@ settings.
 The bot exposes subreddit-level settings so moderators can tailor its behavior:
 
 - The ESPN team ID to follow (defaults to `191`, the San Jose Earthquakes).
-- Per-thread-type toggles to enable or disable automatic creation.
-- The exact link flair text to apply to each thread type.
+- Toggles to enable or disable automatic match thread creation.
+- The link flair to apply to each thread type.
+- Whether to lock each match thread once its active window has passed.
+- How many days to keep the post-match and Man of the Match threads active (stickied and
+  moderated) before they are un-stickied and locked.
 
 ## Fetch Domains
 

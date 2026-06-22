@@ -13,6 +13,8 @@ export const SETTING_KEYS = {
   flairMatch: 'flairMatch',
   flairPostMatch: 'flairPostMatch',
   flairMotm: 'flairMotm',
+  lockInactiveThreads: 'lockInactiveThreads',
+  activeWindowDays: 'activeWindowDays',
 } as const;
 
 /** Setting key toggling automatic creation of each thread type. */

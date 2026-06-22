@@ -4,7 +4,7 @@
 
 import { redis, settings } from '@devvit/web/server';
 import type { MatchEvent, ThreadType } from '../../shared/types';
-import { CREATE_SETTING_KEY } from '../../shared/config';
+import { CREATE_SETTING_KEY, SETTING_KEYS } from '../../shared/config';
 import { fetchSchedule } from '../espn';
 import { handlePostThread } from './postThread';
 import { handleUnstickyThreads } from './unstickyThreads';
@@ -14,23 +14,36 @@ import { recallThreadPost } from './threadPosts';
 
 const HOUR = 60 * 60 * 1000;
 
-/** How long the MOTM thread stays actively moderated after kickoff (matches unsticky). */
-const MOTM_WINDOW_MS = 26 * HOUR;
+/** Default active window (days) when the setting is unset. */
+const DEFAULT_ACTIVE_WINDOW_DAYS = 1;
 
 /** The actions performed around a match: the four thread posts plus the unsticky. */
 type ScheduleAction = ThreadType | 'unsticky';
 
 /**
- * Offset (from kickoff) of the actions that fire on a fixed schedule:
+ * Fixed offsets (from kickoff) of the actions that fire on a fixed schedule:
  *   prematch → kickoff − 12h
  *   match    → kickoff − 1h
- *   unsticky → kickoff + 26h
+ * The unsticky/lock action instead fires at the end of the configurable active
+ * window (see `activeWindowMs`).
  */
 const TIMED_OFFSETS = {
   prematch: -12 * HOUR,
   match: -1 * HOUR,
-  unsticky: 26 * HOUR,
 } satisfies Partial<Record<ScheduleAction, number>>;
+
+/**
+ * How long (ms after kickoff) the post-match thread stays stickied and the MOTM
+ * thread stays moderated before both are unstickied and locked. Mods set this
+ * as a number of days via the "active window" setting; the window is `n` full
+ * days plus ~2h to cover the match itself, i.e. `2 + 24 * n` hours after
+ * kickoff. An unset or invalid value uses the default.
+ */
+async function activeWindowMs(): Promise<number> {
+  const days = await settings.get<number>(SETTING_KEYS.activeWindowDays);
+  const valid = typeof days === 'number' && days > 0 ? days : DEFAULT_ACTIVE_WINDOW_DAYS;
+  return (2 + 24 * valid) * HOUR;
+}
 
 /**
  * Actions that fire once ESPN reports the match has finished (status `post`),
@@ -50,8 +63,10 @@ const DUE_WINDOW = 90 * 60 * 1000;
 const DEDUP_TTL_MS = 4 * 24 * HOUR;
 
 /** Only consider events whose kickoff is close enough to act on this run. */
-function isInWindowOfInterest(kickoff: number, now: number): boolean {
-  return kickoff > now - 27 * HOUR && kickoff < now + 13 * HOUR;
+function isInWindowOfInterest(kickoff: number, now: number, windowMs: number): boolean {
+  // Keep events from before kickoff (pre-match) until a little past the end of
+  // the active window so the unsticky/lock action still has a chance to fire.
+  return kickoff > now - (windowMs + 2 * HOUR) && kickoff < now + 13 * HOUR;
 }
 
 /** Redis key marking an action as already performed for an event. */
@@ -113,17 +128,25 @@ async function fireOnce(
  */
 export async function handleCheckSchedule(subredditName: string): Promise<void> {
   const now = Date.now();
+  const windowMs = await activeWindowMs();
   const events = await fetchSchedule();
-  const upcoming = events.filter((e) => isInWindowOfInterest(Date.parse(e.start), now));
+  const upcoming = events.filter((e) => isInWindowOfInterest(Date.parse(e.start), now, windowMs));
 
   console.info(`Schedule check: ${events.length} events fetched, ${upcoming.length} in window`);
+
+  // Fixed pre-match/match offsets plus the unsticky/lock at the end of the
+  // configurable active window.
+  const offsets: Record<keyof typeof TIMED_OFFSETS | 'unsticky', number> = {
+    ...TIMED_OFFSETS,
+    unsticky: windowMs,
+  };
 
   for (const event of upcoming) {
     const kickoff = Date.parse(event.start);
 
     // Fixed-offset actions (prematch / match / unsticky).
-    for (const action of Object.keys(TIMED_OFFSETS) as (keyof typeof TIMED_OFFSETS)[]) {
-      const actionTime = kickoff + TIMED_OFFSETS[action];
+    for (const action of Object.keys(offsets) as (keyof typeof offsets)[]) {
+      const actionTime = kickoff + offsets[action];
       const due = now >= actionTime && now < actionTime + DUE_WINDOW;
       if (!due) continue;
       // Unsticky always runs; thread posts respect their per-type toggle.
@@ -160,7 +183,7 @@ export async function handleCheckSchedule(subredditName: string): Promise<void> 
 
     // During the MOTM thread's active window, keep it tidy by removing any
     // top-level comments other than the bot's per-player nominations.
-    if (event.state === 'post' && now < kickoff + MOTM_WINDOW_MS) {
+    if (event.state === 'post' && now < kickoff + windowMs) {
       const motmPostId = await recallThreadPost(event.id, 'motm');
       if (motmPostId) {
         try {

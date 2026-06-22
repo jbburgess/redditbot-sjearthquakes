@@ -1,28 +1,15 @@
 /** Post a single match thread of a given type. */
 
 import { reddit, settings } from '@devvit/web/server';
-import type { PostThreadJobData, ThreadType } from '../../shared/types';
+import type { PostThreadJobData } from '../../shared/types';
 import { THREAD_CONFIG, DEFAULT_FLAIR, buildTitle } from '../../shared/config';
 import { getFlairTemplateId } from '../reddit';
 import { renderThreadBody } from '../threadBody';
 import { fetchMatchDetail } from '../matchDetail';
 import { resolveTeamId } from '../espn';
 import { rememberMatchPost } from './updateMatchThread';
-import { rememberThreadPost, recallThreadPost } from './threadPosts';
+import { rememberThreadPost, lockThreadPost } from './threadPosts';
 import { enqueuePlayerComments } from './motm';
-
-/** Lock a previously-posted thread of `type` for the event, if its id is known. */
-async function lockThreadPost(eventId: string, type: ThreadType): Promise<void> {
-  const postId = await recallThreadPost(eventId, type);
-  if (!postId) return;
-  try {
-    const post = await reddit.getPostById(postId as `t3_${string}`);
-    await post.lock();
-    console.info(`Locked ${type} thread ${postId}`);
-  } catch (err) {
-    console.error(`Failed to lock ${type} thread ${postId}`, err);
-  }
-}
 
 /** Post the Man-of-the-Match nomination comments for the followed team. */
 async function postMotmComments(eventId: string, postId: string): Promise<void> {
