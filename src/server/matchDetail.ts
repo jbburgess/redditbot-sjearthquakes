@@ -33,6 +33,8 @@ export interface LineupPlayer {
   starter: boolean;
   subbedIn: boolean;
   subbedOut: boolean;
+  /** Match clock when the player was subbed in (e.g. "83'"), or ''. */
+  subbedInAt: string;
 }
 
 /** A team's lineup (starters and substitutes). */
@@ -98,6 +100,11 @@ interface EspnAthlete {
   displayName?: string;
 }
 
+interface EspnPlay {
+  clock?: { displayValue?: string };
+  substitution?: boolean;
+}
+
 interface EspnRosterEntry {
   active?: boolean;
   starter?: boolean;
@@ -106,6 +113,7 @@ interface EspnRosterEntry {
   position?: { abbreviation?: string };
   subbedIn?: boolean;
   subbedOut?: boolean;
+  plays?: EspnPlay[];
 }
 
 interface EspnRoster {
@@ -188,6 +196,10 @@ function toLineup(roster: EspnRoster): TeamLineup {
     starter: p.starter === true,
     subbedIn: p.subbedIn === true,
     subbedOut: p.subbedOut === true,
+    subbedInAt:
+      p.subbedIn === true
+        ? (p.plays?.find((pl) => pl.substitution === true)?.clock?.displayValue ?? '')
+        : '',
   }));
   return {
     teamName: roster.team?.displayName ?? '',

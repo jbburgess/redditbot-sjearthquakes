@@ -28,19 +28,21 @@ function render(template: string, vars: Record<string, string>): string {
 
 function formatPlayer(player: LineupPlayer): string {
   const number = player.jersey ? `#${player.jersey} ` : '';
-  const position = player.position ? ` (${player.position})` : '';
-  return `${number}${player.name}${position}`;
+  const suffix =
+    player.subbedIn && player.subbedInAt
+      ? ` (${player.subbedInAt})`
+      : player.position
+        ? ` (${player.position})`
+        : '';
+  return `${number}${player.name}${suffix}`;
 }
 
 function renderTeamLineup(lineup: TeamLineup): string {
   const formation = lineup.formation ? ` (${lineup.formation})` : '';
   const xi = lineup.starters.map(formatPlayer).join(', ');
-  const subsUsed = lineup.subs
-    .filter((p) => p.subbedIn)
-    .map(formatPlayer)
-    .join(', ');
+  const subs = lineup.subs.map(formatPlayer).join(', ');
   let section = `**${lineup.teamName}${formation}**\n\n**Starting XI:** ${xi || PLACEHOLDER}`;
-  if (subsUsed) section += `\n\n**Subs:** ${subsUsed}`;
+  if (subs) section += `\n\n**Subs:** ${subs}`;
   return section;
 }
 
@@ -61,11 +63,13 @@ function eventEmoji(type: string, text = ''): string {
   if (t.includes('yellow')) return '🟨';
   if (t.includes('sub')) return '🔄';
   if (t.includes('var')) return '📺';
-  // Delays: pick a specific emoji from the text, defaulting to a stopwatch.
+  // Delays: end delays signal play resuming; start delays pick a specific
+  // emoji from the text, defaulting to a stop sign.
   if (t.includes('delay')) {
+    if (t.includes('end')) return '🟢';
     if (x.includes('drink')) return '🥤';
     if (x.includes('injur')) return '🤕';
-    return '⏱️';
+    return '🛑';
   }
   // Period boundaries: kickoff, halftime, start of 2nd half, end of regulation.
   if (t.includes('kickoff') || t.includes('half') || t.includes('time')) return '⏱️';
