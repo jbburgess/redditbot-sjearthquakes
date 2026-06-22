@@ -39,26 +39,54 @@ function renderTeamLineup(lineup: TeamLineup): string {
     .filter((p) => p.subbedIn)
     .map(formatPlayer)
     .join(', ');
-  let section = `**${lineup.teamName}${formation}**\n\nStarting XI: ${xi || PLACEHOLDER}`;
-  if (subsUsed) section += `\n\nSubs used: ${subsUsed}`;
+  let section = `**${lineup.teamName}${formation}**\n\n**Starting XI:** ${xi || PLACEHOLDER}`;
+  if (subsUsed) section += `\n\n**Subs:** ${subsUsed}`;
   return section;
 }
 
 function renderLineups(detail: MatchDetail): string {
   const withPlayers = detail.lineups.filter((l) => l.starters.length > 0 || l.subs.length > 0);
   if (withPlayers.length === 0) return '*Lineups not yet announced.*';
-  return `### Lineups\n\n${withPlayers.map(renderTeamLineup).join('\n\n')}`;
+  return `${withPlayers.map(renderTeamLineup).join('\n\n')}`;
+}
+
+/** Pick an emoji representing a key-event type (goal, card, sub, etc.). */
+function eventEmoji(type: string): string {
+  const t = type.toLowerCase();
+  if (t.includes('miss') || t.includes('saved')) return '❌';
+  if (t.includes('goal') || t.includes('penalty')) return '⚽';
+  if (t.includes('yellow') && t.includes('red')) return '🟨🟥';
+  if (t.includes('red')) return '🟥';
+  if (t.includes('yellow')) return '🟨';
+  if (t.includes('sub')) return '🔄';
+  if (t.includes('var')) return '📺';
+  // Period boundaries: kickoff, halftime, start of 2nd half, end of regulation.
+  if (t.includes('kickoff') || t.includes('half') || t.includes('time')) return '⏱️';
+  return '';
 }
 
 function renderEvents(detail: MatchDetail): string {
   if (detail.events.length === 0) return '*No match events yet.*';
+  // Log distinct event types so the emoji mapping can be validated against
+  // real ESPN data, flagging any that don't yet map to an emoji.
+  const types = [...new Set(detail.events.map((e) => e.type).filter(Boolean))];
+  if (types.length > 0) {
+    const unmapped = types.filter((t) => !eventEmoji(t));
+    console.info(
+      `Event types: ${types.join(', ')}` +
+        (unmapped.length ? ` | no emoji: ${unmapped.join(', ')}` : '')
+    );
+  }
   return detail.events
     .map((e) => {
       const minute = e.minute ? `**${e.minute}** ` : '';
+      const emoji = eventEmoji(e.type);
+      const prefix = emoji ? `${emoji} ` : '';
+      const text = e.scoring ? `**${e.text}**` : e.text;
       const team = e.team ? ` *(${e.team})*` : '';
-      return `- ${minute}${e.text}${team}`;
+      return `${minute}${prefix}${text}${team}`;
     })
-    .join('\n');
+    .join('\n\n');
 }
 
 function buildScore(detail: MatchDetail): string {

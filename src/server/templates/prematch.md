@@ -1,10 +1,16 @@
-## Pre-Match Thread: {{matchup}}
+## {{matchup}}
 
 **Competition:** {{competition}}
+
 **Kickoff:** {{kickoff}}
+
 **Venue:** {{venue}}
+
 **Broadcast:** {{broadcast}}
+
 **Referee:** {{referee}}
+
+---
 
 ### Form
 
@@ -12,6 +18,10 @@
 |------|:--------------:|:------:|:------:|
 | {{homeTeam}} | {{homeRecord}} | {{homePoints}} | {{homeForm}} |
 | {{awayTeam}} | {{awayRecord}} | {{awayPoints}} | {{awayForm}} |
+
+---
+
+### Lineups
 
 {{lineups}}
 

@@ -1,18 +1,26 @@
-## Match Thread: {{matchup}}
-
-**Score:** {{score}} ({{statusDetail}})
+## {{statusDetail}}: {{score}}
 
 **Competition:** {{competition}}
+
 **Kickoff:** {{kickoff}}
+
 **Venue:** {{venue}}
+
 **Broadcast:** {{broadcast}}
+
 **Referee:** {{referee}}
+
+---
+
+### Lineups
+
+{{lineups}}
+
+---
 
 ### Match Events
 
 {{events}}
-
-{{lineups}}
 
 ---
 

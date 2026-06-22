@@ -1,16 +1,22 @@
-## Post-Match Thread: {{matchup}}
-
-**Final Score:** {{score}} ({{statusDetail}})
+## {{statusDetail}}: {{score}}
 
 **Competition:** {{competition}}
+
 **Venue:** {{venue}}
+
 **Referee:** {{referee}}
+
+---
+
+### Lineups
+
+{{lineups}}
+
+---
 
 ### Match Events
 
 {{events}}
-
-{{lineups}}
 
 ---
 
