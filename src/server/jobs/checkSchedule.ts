@@ -60,6 +60,16 @@ const DUE_WINDOW = 90 * 60 * 1000;
 /** How long dedup markers live — comfortably past the final (unsticky) action. */
 const DEDUP_TTL_MS = 4 * 24 * HOUR;
 
+/**
+ * Redis key holding the recently-active matches (the in-window set). ESPN can
+ * drop a just-finished match from its feed entirely — an international friendly,
+ * for example, leaves the `?fixture=true` feed once it ends but never appears in
+ * the completed-results feed, so the total event count silently drops. Caching
+ * the in-window set lets the delayed post-match actions (unsticky/lock and MOTM
+ * moderation) keep firing for the full active window regardless of the feed.
+ */
+const ACTIVE_MATCHES_KEY = 'match:active';
+
 /** Only consider events whose kickoff is close enough to act on this run. */
 function isInWindowOfInterest(kickoff: number, now: number, windowMs: number): boolean {
   // Keep events from before kickoff (pre-match) until a little past the end of
@@ -87,6 +97,51 @@ export async function alreadyDone(eventId: string, action: ScheduleAction): Prom
 export async function markDone(eventId: string, action: ScheduleAction, now: number): Promise<void> {
   await redis.set(dedupKey(eventId, action), '1', {
     expiration: new Date(now + DEDUP_TTL_MS),
+  });
+}
+
+/** Load the cached set of recently-active matches (empty if none/unparseable). */
+async function loadActiveMatches(): Promise<MatchEvent[]> {
+  const raw = await redis.get(ACTIVE_MATCHES_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as MatchEvent[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Merge freshly-fetched events with the cached in-window set (fetched wins on
+ * conflicts, being fresher) and keep only those still in the window of interest.
+ */
+function mergeActiveMatches(
+  fetched: MatchEvent[],
+  cached: MatchEvent[],
+  now: number,
+  windowMs: number
+): MatchEvent[] {
+  const byId = new Map<string, MatchEvent>();
+  for (const event of cached) byId.set(event.id, event);
+  for (const event of fetched) byId.set(event.id, event);
+  return [...byId.values()].filter((e) =>
+    isInWindowOfInterest(Date.parse(e.start), now, windowMs)
+  );
+}
+
+/**
+ * Persist the in-window set so it survives ESPN dropping a match from its feed.
+ * The stored list self-prunes (matches that age out of the window aren't saved),
+ * and the key's TTL is refreshed past the end of the active window each run.
+ */
+async function saveActiveMatches(
+  events: MatchEvent[],
+  now: number,
+  windowMs: number
+): Promise<void> {
+  await redis.set(ACTIVE_MATCHES_KEY, JSON.stringify(events), {
+    expiration: new Date(now + windowMs + 6 * HOUR),
   });
 }
 
@@ -132,9 +187,20 @@ export async function handleCheckSchedule(subredditName: string): Promise<void> 
     numberSetting(SETTING_KEYS.matchLeadHours, DEFAULT_MATCH_LEAD_HOURS),
   ]);
   const events = await fetchSchedule();
-  const upcoming = events.filter((e) => isInWindowOfInterest(Date.parse(e.start), now, windowMs));
 
-  console.info(`Schedule check: ${events.length} events fetched, ${upcoming.length} in window`);
+  // ESPN can drop a just-finished match from its feed (e.g. an international
+  // friendly that leaves the fixtures feed once it ends without ever appearing
+  // in the results feed). Merge the fetched schedule with the cached in-window
+  // set so the delayed post-match actions (unsticky/lock, MOTM moderation, and
+  // comment draining) keep firing for the full active window, then re-cache the
+  // in-window set (which self-prunes as matches age out).
+  const cached = await loadActiveMatches();
+  const upcoming = mergeActiveMatches(events, cached, now, windowMs);
+  await saveActiveMatches(upcoming, now, windowMs);
+
+  console.info(
+    `Schedule check: ${events.length} fetched, ${upcoming.length} in window (${cached.length} cached)`
+  );
 
   // Pre-match/match lead times plus the unsticky/lock
   // at the end of the active window (all from configuration).

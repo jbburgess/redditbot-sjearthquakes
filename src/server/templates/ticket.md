@@ -4,7 +4,7 @@ For those looking to buy tickets to the match, **you can find official retail ti
 
 ⚠️ As with anything on the internet, please practice caution and use common sense when making deals and exchanging tickets or money with people online. This is a *public* subreddit; *no one* in this thread is endorsed or vetted by the mod team. **There's no guarantee of safety or authenticity when dealing with anyone through this subreddit.**
 
-* Practice caution when dealing with suspiciously new or low-karma accounts
+* Be wary when dealing with suspiciously new or low-karma accounts
 * Never send payment before you've confirmed tickets are legitimate
 * Stick to official ([Tixr](https://www.tixr.com/groups/sjearthquakes/)) or verified resale channels if you're uncomfortable with accepting the risk
 
