@@ -69,11 +69,13 @@ function playerName(player: LineupPlayer): string {
   return player.jersey ? `#${player.jersey} ${player.name}` : player.name;
 }
 
-/** The stat columns to render for a set of players (core + any with activity). */
-function activeColumns(players: LineupPlayer[]): StatColumn[] {
-  return STAT_COLUMNS.filter(
-    (col) => col.core || players.some((p) => statNumber(p, col.key) > 0)
-  );
+/**
+ * The stat columns shown in the summary table: the core columns only. Kept
+ * deliberately minimal so the table stays legible on mobile; individual player
+ * comments still surface every stat a player accumulated.
+ */
+function tableColumns(): StatColumn[] {
+  return STAT_COLUMNS.filter((col) => col.core);
 }
 
 /**
@@ -83,7 +85,7 @@ function activeColumns(players: LineupPlayer[]): StatColumn[] {
 export function renderSummaryTable(players: LineupPlayer[]): string {
   if (players.length === 0) return '*Player stats are not yet available.*';
 
-  const columns = activeColumns(players);
+  const columns = tableColumns();
   const headings = ['Player', MIN_COLUMN.abbr, ...columns.map((c) => c.abbr)];
   const alignment = ['--', ...headings.slice(1).map(() => '--:')];
 
@@ -115,7 +117,7 @@ export function renderPlayerSummary(detail: MatchDetail, teamId: number): string
  * Man-of-the-Match nomination target. Lists the player's key stats inline.
  */
 export function playerCommentBody(player: LineupPlayer): string {
-  const heading = `**${playerName(player)}**`;
+  const heading = `\`${playerName(player)}\``;
   const pairs: string[] = [`${MIN_COLUMN.abbr} ${player.minutes || '0'}`];
   for (const col of STAT_COLUMNS) {
     if (col.core || statNumber(player, col.key) > 0) {
@@ -123,8 +125,8 @@ export function playerCommentBody(player: LineupPlayer): string {
     }
   }
   return (
-    `${heading}\n\n${pairs.join(' · ')}\n\n` +
-    `Upvote this comment to vote for ${player.name} as Man of the Match. ` +
+    `${heading}\n\n\`${pairs.join(' | ')}\`\n\n` +
+    `Upvote this comment to vote for ${player.name}. ` +
     `Replies are welcome!`
   );
 }

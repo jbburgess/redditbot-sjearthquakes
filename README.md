@@ -1,17 +1,17 @@
 # r/SJEarthquakes Bot
 
-A mod bot for the San Jose Earthquakes subreddit (`r/SJEarthquakes`). It follows the
-club's schedule and keeps the community's game-day discussion organized without any
-manual effort from the mod team.
+A mod bot for the San Jose Earthquakes subreddit (`r/SJEarthquakes`). It automatically manages
+the community's match-day threads, posts megathreads, and fosters discussion by monitoring and
+posting official news releases from the Quakes website.
 
 ## What it does
 
-- **News posts** *(pending domain approval)* — Encourages community discussion by regularly
+- **News posts** *(pending domain approval)* — Encourages community engagement by regularly
   checking the official San Jose Earthquakes website news page and posting any new articles
   to the subreddit as link posts with an "Official Source" flair, skipping any articles already
-  posted (by anyone) or previously removed by mods.
-  *This feature is ported from the bot's previous version and will be inactive until the
-  `sjearthquakes.com` fetch domain is approved (see [Fetch Domains](#fetch-domains)).*
+  posted (by the bot or another user) or those previously removed by mods.
+  *This feature is ported to Devvit from the bot's previous version, but will remain inactive
+  until the `sjearthquakes.com` fetch domain is approved (see [Fetch Domains](#fetch-domains)).*
 - **Pre-match threads** — posts a stickied pre-match thread ahead of kickoff with the
   matchup, kickoff time, venue, broadcast info, team records, and recent form.
 - **Match threads** — posts a stickied match thread at kickoff (sorted by *new*) and
@@ -27,15 +27,18 @@ manual effort from the mod team.
   to the official ticket marketplace and lists the month's home matches (with notes for cup
   ties or matches played away from PayPal Park). A new month's thread replaces the previous
   one, posting after the prior month's final match concludes so the old thread stays useful
-  until then. Months with no home matches are skipped, un-stickying the previous thread
-  instead — gracefully covering the offseason and long mid-season breaks.
+  until then, but users get as much lead time as possible for the first match of the next 
+  month. Months with no home matches are skipped, un-stickying the previous thread
+  instead, so stale ticket threads aren't left up during the offseason and long mid-season breaks.
 - **Thread housekeeping** — applies the correct link flair to each thread, stickies and
   later un-stickies threads at the right times, and (optionally) locks each thread once its
   active window has passed.
 
+Subreddit menu options are provided for moderators to manually post any ticket or match threads
+as needed, and the bot provides a number of configurable settings for mods to tune behavior.
+
 Schedule and match data is sourced from ESPN, and club news from the official San Jose
-Earthquakes website. Moderators can also post any threads on demand from the subreddit
-menu and toggle each thread type on or off in the app's settings.
+Earthquakes website.
 
 ## Configuration
 

@@ -5,7 +5,7 @@ import matchTemplate from './templates/match.md?raw';
 import postmatchTemplate from './templates/postmatch.md?raw';
 import motmTemplate from './templates/motm.md?raw';
 import type { MatchEvent, ThreadType } from '../shared/types';
-import { formatKickoffDateTime } from '../shared/config';
+import { formatKickoffDateTime, formatKickoffTime } from '../shared/config';
 import { resolveTeamId } from './espn';
 import { fetchMatchDetail, type LineupPlayer, type MatchDetail, type TeamLineup } from './matchDetail';
 import { renderPlayerSummary } from './playerStats';
@@ -41,9 +41,9 @@ function formatPlayer(player: LineupPlayer): string {
 
 function renderTeamLineup(lineup: TeamLineup): string {
   const formation = lineup.formation ? ` (${lineup.formation})` : '';
-  const xi = lineup.starters.map(formatPlayer).join('\n- ');
+  const xi = lineup.starters.map(formatPlayer).join('\n    ');
   const subs = lineup.subs.map(formatPlayer).join(', ');
-  let section = `**${lineup.teamName}${formation}**\n\n**Starting XI:**\n- ${xi || PLACEHOLDER}`;
+  let section = `**${lineup.teamName}${formation}**\n\n**Starting XI:**\n    ${xi || PLACEHOLDER}`;
   if (subs) section += `\n\n**Subs:** ${subs}`;
   return section;
 }
@@ -102,9 +102,17 @@ function renderEvents(detail: MatchDetail): string {
     .join('\n\n');
 }
 
+/** Match-status heading text: a pre-match kickoff time, else ESPN's status detail. */
+function buildStatusDetail(detail: MatchDetail): string {
+  if (detail.state === 'pre') return `Kickoff at ${formatKickoffTime(detail.kickoff)}`;
+  return detail.statusDetail || PLACEHOLDER;
+}
+
+/** Scoreline keeping both team names in place, defaulting missing scores to 0. */
 function buildScore(detail: MatchDetail): string {
-  if (detail.home.score === '' || detail.away.score === '') return PLACEHOLDER;
-  return `${detail.home.name} ${detail.home.score} – ${detail.away.score} ${detail.away.name}`;
+  const home = detail.home.score || '0';
+  const away = detail.away.score || '0';
+  return `${detail.home.name} ${home} – ${away} ${detail.away.name}`;
 }
 
 function detailVars(detail: MatchDetail): Record<string, string> {
@@ -116,7 +124,7 @@ function detailVars(detail: MatchDetail): Record<string, string> {
     broadcast: detail.broadcast || PLACEHOLDER,
     referee: detail.referee || PLACEHOLDER,
     score: buildScore(detail),
-    statusDetail: detail.statusDetail || PLACEHOLDER,
+    statusDetail: buildStatusDetail(detail),
     homeTeam: detail.home.name,
     awayTeam: detail.away.name,
     homeRecord: detail.home.record || PLACEHOLDER,
