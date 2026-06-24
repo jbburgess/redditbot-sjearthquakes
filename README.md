@@ -45,8 +45,9 @@ Earthquakes website.
 The bot exposes subreddit-level settings so moderators can tailor its behavior:
 
 - The ESPN team ID to follow (defaults to `191`, the San Jose Earthquakes).
-- Toggles to enable or disable automatic match thread creation.
-- A toggle to enable or disable the monthly ticket thread, plus its link flair text.
+- A single multi-select choosing which threads the bot creates automatically (pre-match,
+  match, post-match, Man of the Match, and the monthly ticket thread). Unselect a type to
+  stop the bot posting it; mods can still post any thread manually from the subreddit menu.
 - The link flair to apply to each thread type.
 - How many hours before kickoff the pre-match and match threads are posted.
 - Whether to lock each match thread once its active window has passed.

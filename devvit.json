@@ -94,11 +94,18 @@
         "helpText": "ESPN soccer team ID whose schedule the bot follows (191 = San Jose Earthquakes).",
         "defaultValue": 191
       },
-      "createPreMatch": {
-        "type": "boolean",
-        "label": "Create pre-match threads",
-        "helpText": "Whether to automatically create pre-match threads for upcoming matches.",
-        "defaultValue": true
+      "createThreads": {
+        "type": "multiSelect",
+        "label": "Auto-create these threads",
+        "helpText": "Which threads the bot creates automatically. Unselect a type to stop the bot posting it. Pre-match, match, post-match, and Man of the Match are per-match; the ticket thread is the monthly stickied thread.",
+        "options": [
+          { "label": "Pre-match threads", "value": "prematch" },
+          { "label": "Match threads", "value": "match" },
+          { "label": "Post-match threads", "value": "postmatch" },
+          { "label": "Man of the Match threads", "value": "motm" },
+          { "label": "Monthly ticket thread", "value": "ticket" }
+        ],
+        "defaultValue": ["prematch", "match", "postmatch", "motm", "ticket"]
       },
       "prematchLeadHours": {
         "type": "number",
@@ -112,12 +119,6 @@
         "helpText": "Exact text of the link flair to apply to pre-match threads.",
         "defaultValue": "Pre Match"
       },
-      "createMatch": {
-        "type": "boolean",
-        "label": "Create match threads",
-        "helpText": "Whether to automatically create match threads when matches start.",
-        "defaultValue": true
-      },
       "matchLeadHours": {
         "type": "number",
         "label": "Match thread lead time (hours)",
@@ -130,35 +131,17 @@
         "helpText": "Exact text of the link flair to apply to match threads.",
         "defaultValue": "Match Thread"
       },
-      "createPostMatch": {
-        "type": "boolean",
-        "label": "Create post-match threads",
-        "helpText": "Whether to automatically create post-match threads after matches end.",
-        "defaultValue": true
-      },
       "flairPostMatch": {
         "type": "string",
         "label": "Post-match thread flair text",
         "helpText": "Exact text of the link flair to apply to post-match threads.",
         "defaultValue": "Post Match"
       },
-      "createMotm": {
-        "type": "boolean",
-        "label": "Create Man of the Match threads",
-        "helpText": "Whether to automatically create Man of the Match threads after matches end.",
-        "defaultValue": true
-      },
       "flairMotm": {
         "type": "string",
         "label": "Man of the Match thread flair text",
         "helpText": "Exact text of the link flair to apply to Man of the Match threads.",
         "defaultValue": "Man of the Match"
-      },
-      "createTicketThread": {
-        "type": "boolean",
-        "label": "Create monthly ticket threads",
-        "helpText": "Whether to automatically create and sticky a monthly ticket thread for months with home matches.",
-        "defaultValue": true
       },
       "flairTicket": {
         "type": "string",

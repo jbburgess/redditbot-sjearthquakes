@@ -4,7 +4,7 @@
 
 import { redis, settings } from '@devvit/web/server';
 import type { MatchEvent, ThreadType } from '../../shared/types';
-import { CREATE_SETTING_KEY, SETTING_KEYS } from '../../shared/config';
+import { isThreadEnabled, SETTING_KEYS } from '../../shared/config';
 import { fetchSchedule } from '../espn';
 import { handlePostThread } from './postThread';
 import { handleUnstickyThreads } from './unstickyThreads';
@@ -80,14 +80,6 @@ function isInWindowOfInterest(kickoff: number, now: number, windowMs: number): b
 /** Redis key marking an action as already performed for an event. */
 function dedupKey(eventId: string, action: ScheduleAction): string {
   return `sched:done:${eventId}:${action}`;
-}
-
-/**
- * Whether automatic creation of the given thread type is enabled. Mods can
- * toggle each type via subreddit settings; an unset value defaults to enabled.
- */
-async function autoCreateEnabled(type: ThreadType): Promise<boolean> {
-  return (await settings.get<boolean>(CREATE_SETTING_KEY[type])) !== false;
 }
 
 export async function alreadyDone(eventId: string, action: ScheduleAction): Promise<boolean> {
@@ -186,6 +178,8 @@ export async function handleCheckSchedule(subredditName: string): Promise<void> 
     numberSetting(SETTING_KEYS.prematchLeadHours, DEFAULT_PREMATCH_LEAD_HOURS),
     numberSetting(SETTING_KEYS.matchLeadHours, DEFAULT_MATCH_LEAD_HOURS),
   ]);
+  // Which thread types mods have enabled for automatic creation (unset = all).
+  const enabledThreads = await settings.get<string[]>(SETTING_KEYS.createThreads);
   const events = await fetchSchedule();
 
   // ESPN can drop a just-finished match from its feed (e.g. an international
@@ -219,7 +213,7 @@ export async function handleCheckSchedule(subredditName: string): Promise<void> 
       const due = now >= actionTime && now < actionTime + DUE_WINDOW;
       if (!due) continue;
       // Unsticky always runs; thread posts respect their per-type toggle.
-      if (action !== 'unsticky' && !(await autoCreateEnabled(action))) continue;
+      if (action !== 'unsticky' && !isThreadEnabled(enabledThreads, action)) continue;
       await fireOnce(subredditName, event, action, now);
     }
 
@@ -236,7 +230,7 @@ export async function handleCheckSchedule(subredditName: string): Promise<void> 
     // Post-match actions fire once ESPN reports the match has finished.
     if (event.state === 'post') {
       for (const action of MATCH_ENDED_ACTIONS) {
-        if (!(await autoCreateEnabled(action))) continue;
+        if (!isThreadEnabled(enabledThreads, action)) continue;
         await fireOnce(subredditName, event, action, now);
       }
     }

@@ -5,29 +5,34 @@ import type { MatchEvent, ThreadType } from './types';
 /** Subreddit-scoped setting keys (declared in devvit.json, editable by mods). */
 export const SETTING_KEYS = {
   teamId: 'teamId',
-  createPreMatch: 'createPreMatch',
-  createMatch: 'createMatch',
-  createPostMatch: 'createPostMatch',
-  createMotm: 'createMotm',
+  createThreads: 'createThreads',
   prematchLeadHours: 'prematchLeadHours',
   matchLeadHours: 'matchLeadHours',
   flairPreMatch: 'flairPreMatch',
   flairMatch: 'flairMatch',
   flairPostMatch: 'flairPostMatch',
   flairMotm: 'flairMotm',
-  createTicketThread: 'createTicketThread',
   flairTicket: 'flairTicket',
   lockInactiveThreads: 'lockInactiveThreads',
   activeWindowDays: 'activeWindowDays',
 } as const;
 
-/** Setting key toggling automatic creation of each thread type. */
-export const CREATE_SETTING_KEY: Record<ThreadType, string> = {
-  prematch: SETTING_KEYS.createPreMatch,
-  match: SETTING_KEYS.createMatch,
-  postmatch: SETTING_KEYS.createPostMatch,
-  motm: SETTING_KEYS.createMotm,
-};
+/** A thread type that can be toggled on/off via the `createThreads` setting. */
+export type ThreadToggle = ThreadType | 'ticket';
+
+/** All toggleable thread types, in display order (matches the setting options). */
+export const THREAD_TOGGLES: ThreadToggle[] = ['prematch', 'match', 'postmatch', 'motm', 'ticket'];
+
+/**
+ * Whether a thread type is enabled for automatic creation. `selected` is the
+ * raw value of the `createThreads` multi-select setting: an unset value
+ * (`undefined`) defaults to all types enabled, while an explicit — possibly
+ * empty — selection is honored as-is, so mods can disable every auto-created
+ * thread by clearing the list.
+ */
+export function isThreadEnabled(selected: string[] | undefined, toggle: ThreadToggle): boolean {
+  return selected === undefined ? true : selected.includes(toggle);
+}
 
 /** Fallback flair text used when a setting is blank. */
 export const DEFAULT_FLAIR: Record<ThreadType, string> = {

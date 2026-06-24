@@ -14,7 +14,7 @@
 import { redis, reddit, settings } from '@devvit/web/server';
 import ticketTemplate from '../templates/ticket.md?raw';
 import type { MatchEvent } from '../../shared/types';
-import { SETTING_KEYS } from '../../shared/config';
+import { SETTING_KEYS, isThreadEnabled } from '../../shared/config';
 import { getFlairTemplateId } from '../reddit';
 
 const HOUR = 60 * 60 * 1000;
@@ -164,7 +164,8 @@ function renderTicketBody(matches: MatchEvent[]): string {
 
 /** Whether automatic ticket-thread management is enabled (defaults to on). */
 async function ticketEnabled(): Promise<boolean> {
-  return (await settings.get<boolean>(SETTING_KEYS.createTicketThread)) !== false;
+  const selected = await settings.get<string[]>(SETTING_KEYS.createThreads);
+  return isThreadEnabled(selected, 'ticket');
 }
 
 /**
