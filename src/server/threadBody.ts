@@ -28,8 +28,9 @@ function render(template: string, vars: Record<string, string>): string {
   return out.replace(/\{\{[a-zA-Z]+\}\}/g, '').trimEnd() + '\n';
 }
 
-function formatPlayer(player: LineupPlayer): string {
-  const number = player.jersey ? `\\#${player.jersey} ` : '';
+function formatPlayer(player: LineupPlayer, escape = true): string {
+  const hash = escape ? '\\#' : '#';
+  const number = player.jersey ? `${hash}${player.jersey} ` : '';
   const suffix =
     player.subbedIn && player.subbedInAt
       ? ` (${player.subbedInAt})`
@@ -41,9 +42,11 @@ function formatPlayer(player: LineupPlayer): string {
 
 function renderTeamLineup(lineup: TeamLineup): string {
   const formation = lineup.formation ? ` (${lineup.formation})` : '';
-  const xi = lineup.starters.map(formatPlayer).join('\n    ');
-  const subs = lineup.subs.map(formatPlayer).join(', ');
-  let section = `**${lineup.teamName}${formation}**\n\n**Starting XI:**\n    ${xi || PLACEHOLDER}`;
+  // Starters render in an indented code block (literal text, so jersey numbers
+  // are unescaped); subs render inline where `#` must be escaped.
+  const xi = lineup.starters.map((p) => formatPlayer(p, false)).join('\n    ');
+  const subs = lineup.subs.map((p) => formatPlayer(p)).join(', ');
+  let section = `**${lineup.teamName}${formation}**\n\n**Starting XI:**\n\n    ${xi || PLACEHOLDER}`;
   if (subs) section += `\n\n**Subs:** ${subs}`;
   return section;
 }

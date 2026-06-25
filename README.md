@@ -1,5 +1,7 @@
 # r/SJEarthquakes Bot
 
+> **NOTE:** This is a port of the Data API bot `u/SJEarthquakesBot` to the Devvit platform, as part of the Reddit App Migration Program.
+
 A mod bot for the San Jose Earthquakes subreddit (`r/SJEarthquakes`). It automatically manages
 the community's match-day threads, posts megathreads, and fosters discussion by monitoring and
 posting official news releases from the Quakes website.
