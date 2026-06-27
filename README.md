@@ -1,5 +1,7 @@
 # r/SJEarthquakes Bot
 
+[![Test, Build, and Upload Devvit App (CI/CD)](https://github.com/jbburgess/redditbot-sjearthquakes/actions/workflows/devvit-cicd.yml/badge.svg?branch=master)](https://github.com/jbburgess/redditbot-sjearthquakes/actions/workflows/devvit-cicd.yml)
+
 > **NOTE:** This is a port of the Data API bot `u/SJEarthquakesBot` to the Devvit platform, as part of the Reddit App Migration Program.
 
 A mod bot for the San Jose Earthquakes subreddit (`r/SJEarthquakes`). It automatically manages
