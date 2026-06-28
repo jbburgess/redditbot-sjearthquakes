@@ -123,7 +123,6 @@ describe('playerCommentBody', () => {
     const body = playerCommentBody(antony);
     expect(body).toContain('`#11 Antony`');
     expect(body).toContain('`MIN 90 | G 1 | A 0 | SH 3 | SOG 2`');
-    expect(body).toContain('Upvote this comment to vote for Antony.');
   });
 
   test('omits non-core stats that are zero', () => {
@@ -137,6 +136,5 @@ describe('playerCommentBody', () => {
   test('uses the bare name when there is no jersey number', () => {
     const body = playerCommentBody(makePlayer({ name: 'Trialist', jersey: '', minutes: '45' }));
     expect(body).toContain('`Trialist`');
-    expect(body).toContain('Upvote this comment to vote for Trialist.');
   });
 });

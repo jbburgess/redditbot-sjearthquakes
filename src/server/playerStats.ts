@@ -125,8 +125,6 @@ export function playerCommentBody(player: LineupPlayer): string {
     }
   }
   return (
-    `${heading}\n\n\`${pairs.join(' | ')}\`\n\n` +
-    `Upvote this comment to vote for ${player.name}. ` +
-    `Replies are welcome!`
+    `${heading}\n\n\`${pairs.join(' | ')}\``
   );
 }
