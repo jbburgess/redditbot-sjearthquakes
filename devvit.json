@@ -1,0 +1,173 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "sjquakesbot",
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "permissions": {
+    "redis": true,
+    "reddit": {
+      "enable": true,
+      "scope": "moderator"
+    },
+    "http": {
+      "enable": true,
+      "domains": [
+        "site.api.espn.com",
+        "www.sjearthquakes.com"
+      ]
+    }
+  },
+  "scheduler": {
+    "tasks": {
+      "check-schedule": {
+        "endpoint": "/internal/scheduler/check-schedule",
+        "cron": "*/1 * * * *"
+      },
+      "post-thread": {
+        "endpoint": "/internal/scheduler/post-thread"
+      },
+      "unsticky-threads": {
+        "endpoint": "/internal/scheduler/unsticky-threads"
+      }
+    }
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "Post pre-match thread",
+        "description": "Manually post the pre-match thread for the current or next match",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/post-prematch"
+      },
+      {
+        "label": "Post match thread",
+        "description": "Manually post the match thread for the current or next match",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/post-match"
+      },
+      {
+        "label": "Post post-match thread",
+        "description": "Manually post the post-match thread for the current or previous match",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/post-postmatch"
+      },
+      {
+        "label": "Post Man of the Match thread",
+        "description": "Manually post the Man of the Match thread for the current or previous match",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/post-motm"
+      },
+      {
+        "label": "Post/refresh ticket thread",
+        "description": "Post or refresh the monthly ticket thread for the current relevant month",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/post-ticket"
+      },
+      {
+        "label": "Unsticky ticket thread (skip month)",
+        "description": "Unsticky the current ticket thread and skip the relevant month",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/unsticky-ticket"
+      },
+      {
+        "label": "Reset thread markers (dev)",
+        "description": "Clear dedup markers so match threads can be re-posted during testing",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/reset-markers"
+      }
+    ]
+  },
+  "settings": {
+    "subreddit": {
+      "teamId": {
+        "type": "number",
+        "label": "ESPN team ID",
+        "helpText": "ESPN soccer team ID whose schedule the bot follows (191 = San Jose Earthquakes).",
+        "defaultValue": 191
+      },
+      "createThreads": {
+        "type": "multiSelect",
+        "label": "Auto-create these threads",
+        "helpText": "Which threads the bot creates automatically. Unselect a type to stop the bot posting it. Pre-match, match, post-match, and Man of the Match are per-match; the ticket thread is the monthly stickied thread.",
+        "options": [
+          { "label": "Pre-match threads", "value": "prematch" },
+          { "label": "Match threads", "value": "match" },
+          { "label": "Post-match threads", "value": "postmatch" },
+          { "label": "Man of the Match threads", "value": "motm" },
+          { "label": "Monthly ticket thread", "value": "ticket" }
+        ],
+        "defaultValue": ["prematch", "match", "postmatch", "motm", "ticket"]
+      },
+      "prematchLeadHours": {
+        "type": "number",
+        "label": "Pre-match thread lead time (hours)",
+        "helpText": "How many hours before kickoff to post the pre-match thread. Defaults to 12.",
+        "defaultValue": 12
+      },
+      "matchLeadHours": {
+        "type": "number",
+        "label": "Match thread lead time (hours)",
+        "helpText": "How many hours before kickoff to post the match thread. Defaults to 1.",
+        "defaultValue": 1
+      },
+      "activeWindowDays": {
+        "type": "number",
+        "label": "Post-match active window (days)",
+        "helpText": "How many days to keep the post-match thread stickied and the MOTM thread moderated before unstickying and potentially locking both. Defaults to 1 day.",
+        "defaultValue": 1
+      },
+      "lockInactiveThreads": {
+        "type": "boolean",
+        "label": "Lock inactive match threads",
+        "helpText": "Whether to lock each match thread once its active window has passed (pre-match once the match thread posts, match once the post-match/MOTM threads post, and post-match/MOTM at the end of their active window).",
+        "defaultValue": true
+      },
+      "flairPreMatch": {
+        "type": "string",
+        "label": "Pre-match thread flair text",
+        "helpText": "Exact text of the link flair to apply to pre-match threads.",
+        "defaultValue": "Pre Match"
+      },
+      "flairMatch": {
+        "type": "string",
+        "label": "Match thread flair text",
+        "helpText": "Exact text of the link flair to apply to match threads.",
+        "defaultValue": "Match Thread"
+      },
+      "flairPostMatch": {
+        "type": "string",
+        "label": "Post-match thread flair text",
+        "helpText": "Exact text of the link flair to apply to post-match threads.",
+        "defaultValue": "Post Match"
+      },
+      "flairMotm": {
+        "type": "string",
+        "label": "Man of the Match thread flair text",
+        "helpText": "Exact text of the link flair to apply to Man of the Match threads.",
+        "defaultValue": "Man of the Match"
+      },
+      "flairTicket": {
+        "type": "string",
+        "label": "Ticket thread flair text",
+        "helpText": "Exact text of the link flair to apply to the monthly ticket thread.",
+        "defaultValue": "Ticket Thread"
+      }
+    }
+  },
+  "dev": {
+    "subreddit": "SJEarthquakes_dev"
+  },
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build"
+  }
+}

@@ -1,81 +1,82 @@
-# redditbot-sjearthquakes
-[![GitHub Actions](https://github.com/jbburgess/redditbot-sjearthquakes/actions/workflows/master_redditbot-sjearthquakes.yml/badge.svg)](https://github.com/jbburgess/redditbot-sjearthquakes/actions/workflows/master_redditbot-sjearthquakes.yml)
+# r/SJEarthquakes Bot
 
-## Table of Contents
+[![Test, Build, and Upload Devvit App (CI/CD)](https://github.com/jbburgess/redditbot-sjearthquakes/actions/workflows/devvit-cicd.yml/badge.svg?branch=master)](https://github.com/jbburgess/redditbot-sjearthquakes/actions/workflows/devvit-cicd.yml)
 
-- [Overview](#overview)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Running the bot locally](#running-the-bot-locally)
-  - [Deploying the bot to Azure](#deploying-the-bot-to-azure)
-- [Authors](#authors)
+> **NOTE:** This is a port of the Data API bot `u/SJEarthquakesBot` to the Devvit platform, as part of the Reddit App Migration Program.
 
-## Overview
+A mod bot for the San Jose Earthquakes subreddit (`r/SJEarthquakes`). It automatically manages
+the community's match-day threads, posts megathreads, and fosters discussion by monitoring and
+posting official news releases from the Quakes website.
 
-A collection of Azure functions for the San Jose Earthquakes subreddit bot. The bot is designed to provide automated functionality for the subreddit, including:
+## What it does
 
-- Post, sticky, and unsticky matchday threads (Pre-Match, Match, Post-Match, and Man of the Match) at the appropriate times.
-- Post news articles from the official SJEarthquakes.com website as they're announced.
+- **News posts** *(pending domain approval)* — Encourages community engagement by regularly
+  checking the official San Jose Earthquakes website news page and posting any new articles
+  to the subreddit as link posts with an "Official Source" flair, skipping any articles already
+  posted (by the bot or another user) or those previously removed by mods.
+  *This feature is ported to Devvit from the bot's previous version, but will remain inactive
+  until the `sjearthquakes.com` fetch domain is approved (see [Fetch Domains](#fetch-domains)).*
+- **Pre-match threads** — posts a stickied pre-match thread ahead of kickoff with the
+  matchup, kickoff time, venue, broadcast info, team records, and recent form.
+- **Match threads** — posts a stickied match thread at kickoff (sorted by *new*) and
+  keeps it updated live with the score, key events, and confirmed lineups as the match
+  progresses.
+- **Post-match threads** — posts a stickied post-match thread once the match ends, with
+  the final score, match events, and full player lineups.
+- **Man of the Match threads** — posts a Man of the Match thread with a per-player
+  performance summary table, then adds one nomination comment per player who featured so
+  members can upvote their pick. The thread is kept tidy by removing stray top-level
+  comments during its active voting window.
+- **Monthly ticket threads** — posts and top-stickies a ticket thread each month that links
+  to the official ticket marketplace and lists the month's home matches (with notes for cup
+  ties or matches played away from PayPal Park). A new month's thread replaces the previous
+  one, posting after the prior month's final match concludes so the old thread stays useful
+  until then, but users get as much lead time as possible for the first match of the next 
+  month. Months with no home matches are skipped, un-stickying the previous thread
+  instead, so stale ticket threads aren't left up during the offseason and long mid-season breaks.
+- **Thread housekeeping** — applies the correct link flair to each thread, stickies and
+  later un-stickies threads at the right times, and (optionally) locks each thread once its
+  active window has passed.
 
-The bot is designed to be run as an Azure Function App, and is written in Python. The bot contains the following Azure Functions:
+Subreddit menu options are provided for moderators to manually post any ticket or match threads
+as needed, and the bot provides a number of configurable settings for mods to tune behavior.
 
-- `get_schedule`: A timer-triggered function that checks the match schedule and triggers the `post_match_thread` function as needed.
-- `post_match_thread`: An HTTP-triggered function that posts match threads on-demand.
-- `post_news`: A timer-triggered function that checks for and posts news articles from the official SJEarthquakes.com website.
+Schedule and match data is sourced from ESPN, and club news from the official San Jose
+Earthquakes website.
 
-The bot uses the following external services:
+## Configuration
 
-- [Reddit](https://www.reddit.com): The bot uses the Reddit API to post and manage submissions.
-- [SJEarthquakes.com](https://www.sjearthquakes.com): The bot scrapes news articles from the official San Jose Earthquakes website.
+The bot exposes subreddit-level settings so moderators can tailor its behavior:
 
-The bot uses the following Python packages:
+- The ESPN team ID to follow (defaults to `191`, the San Jose Earthquakes).
+- A single multi-select choosing which threads the bot creates automatically (pre-match,
+  match, post-match, Man of the Match, and the monthly ticket thread). Unselect a type to
+  stop the bot posting it; mods can still post any thread manually from the subreddit menu.
+- The link flair to apply to each thread type.
+- How many hours before kickoff the pre-match and match threads are posted.
+- Whether to lock each match thread once its active window has passed.
+- How many days to keep the post-match and Man of the Match threads active (stickied and
+  moderated) before they are un-stickied and locked.
+- *(Pending domain approval)* News posting controls, such as how far back to consider
+  articles from the club news page and which flair to apply to news posts.
 
-- [beautifulsoup4](https://pypi.org/project/beautifulsoup4/): For parsing HTML and XML documents.
-- [icalendar](https://pypi.org/project/icalendar/): For parsing .ics files.
-- [praw](https://pypi.org/project/praw/): For interacting with the Reddit API.
-- [requests](https://pypi.org/project/requests/): For making HTTP requests.
+## Fetch Domains
 
-The bot expects the following environment variables to be set:
-*(As Application Settings in Azure, or in a `local.settings.json` file for local development)*
+The following domains are required for this app:
 
-- `NewsSite_BaseURL`: The base URL of the news site.
-- `NewsSite_NewsURL`: The URL sub-path for news articles.
-- `NewsSite_MaxArticles`: The maximum number of articles to retrieve.
-- `NewsSite_ArticleCutoffDays`: The number of days after which articles are considered outdated.
-- `Reddit_Connection_UserAgent`: The user agent for the Reddit connection.
-- `Reddit_Connection_ClientID`: The client ID for the Reddit connection.
-- `Reddit_Connection_ClientSecret`: The client secret for the Reddit connection.
-- `Reddit_Connection_Username`: The username for the Reddit connection.
-- `Reddit_Connection_Password`: The password for the Reddit connection.
-- `Reddit_MatchThread_FunctionURL`: The URL for triggering the match thread function.
-- `Reddit_Submission_Resubmit`: Flag indicating whether to resubmit submissions.
-- `Reddit_Submission_SendReplies`: Flag indicating whether to send replies to submissions.
-- `Reddit_Subreddit`: The subreddit to post in.
-- `Schedule_URL`: The URL for the .ics file containing the match schedule.
+- `sjearthquakes.com` - *[Pending approval]* Used to fetch club news and announcements directly from the official San Jose Earthquakes website for posting to the subreddit; preferred to ESPN as the primary source for official club news/releases. The news-posting feature is inactive until this domain is approved.
+- `site.api.espn.com` - *[Already in the global allow list]* Used to fetch the team's schedule, fixtures, and live/post-match details (scores, events, lineups, and player performance stats) that populate every match thread.
 
-## Getting Started
+## Future Enhancements
 
-### Prerequisites
+The following features are planned but not currently possible due to Devvit platform
+limitations. They will be added as the platform gains support:
 
-- [Visual Studio Code](https://code.visualstudio.com/)
-- [Azure Functions Extension](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azurefunctions)
-- [Azure Functions Core Tools](https://docs.microsoft.com/en-us/azure/azure-functions/functions-run-local?tabs=windows%2Ccsharp%2Cbash)
-- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli?view=azure-cli-latest)
-
-### Running the bot locally
-
-1. Clone the repository
-2. Open the repository in Visual Studio Code
-3. Open the terminal and run `func start`
-4. The bot will be running locally at `http://localhost:7071`
-
-### Deploying the bot to Azure
-
-1. Open the terminal and run `az login`
-2. Run `az account set --subscription <subscription-id>`
-3. Run `func azure functionapp publish <function-app-name>`
-4. The bot will be deployed to Azure and running at `https://<function-app-name>.azurewebsites.net`
-
-## Authors
-
-- **[Jonathan Burgess](https://www.github.com/jbburgess)**
+- **Native Man of the Match poll** — the Man of the Match thread currently collects votes
+  via per-player nomination comments that members upvote. A native Reddit poll would be ideal,
+  but Devvit's post API only supports link, text, and media posts (poll data is
+  read-only), so native polls can't be created by an app today.
+- **Game-day community status** — Being able to automatically set the subreddit's community
+  status bubble (e.g. "Match Day! Quakes vs. Portland 7:30 PM PT") around each match would 
+  be a nice-to-have. Devvit currently exposes no API to set the community status,
+  so this would still have to be done manually.
