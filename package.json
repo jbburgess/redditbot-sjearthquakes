@@ -28,7 +28,7 @@
     "@vitest/coverage-v8": "^4.1.0",
     "devvit": "^0.13.5",
     "typescript": "5.8.3",
-    "vite": "7.3.2",
+    "vite": "8.1.0",
     "vitest": "^4.1.0"
   },
   "license": "BSD-3-Clause"
