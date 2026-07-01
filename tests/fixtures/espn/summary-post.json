@@ -29,7 +29,7 @@
     ]
   },
   "gameInfo": {
-    "venue": { "fullName": "PayPal Park" },
+    "venue": { "fullName": "PayPal Park", "address": { "city": "San Jose, California" } },
     "officials": [
       { "fullName": "Jair Marrufo", "position": { "name": "Referee" } },
       { "fullName": "Corey Parker", "position": { "name": "Assistant Referee" } }

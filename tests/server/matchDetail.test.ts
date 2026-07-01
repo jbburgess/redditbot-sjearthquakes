@@ -14,7 +14,7 @@ test('parses headline detail from a finished match summary', async () => {
   const detail = await fetchMatchDetail('401');
 
   expect(detail.competition).toBe('MLS');
-  expect(detail.venue).toBe('PayPal Park');
+  expect(detail.venue).toBe('PayPal Park (San Jose, California)');
   expect(detail.broadcast).toBe('MLS Season Pass');
   expect(detail.referee).toBe('Jair Marrufo');
   expect(detail.state).toBe('post');

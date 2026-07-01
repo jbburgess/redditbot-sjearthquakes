@@ -164,7 +164,10 @@ interface EspnOfficial {
 
 interface EspnSummaryResponse {
   header?: { league?: { name?: string }; competitions?: EspnHeaderCompetition[] };
-  gameInfo?: { venue?: { fullName?: string }; officials?: EspnOfficial[] };
+  gameInfo?: {
+    venue?: { fullName?: string; address?: { city?: string } };
+    officials?: EspnOfficial[];
+  };
   rosters?: EspnRoster[];
   keyEvents?: EspnKeyEvent[];
   lastFiveGames?: EspnLastFiveGames[];
@@ -286,6 +289,14 @@ function findReferee(officials: EspnOfficial[] | undefined): string {
   return ref?.fullName ?? '';
 }
 
+/** Build a "Stadium (City)" venue string, omitting the city when unavailable. */
+function buildVenue(venue: { fullName?: string; address?: { city?: string } } | undefined): string {
+  const name = venue?.fullName ?? '';
+  const city = venue?.address?.city ?? '';
+  if (name && city) return `${name} (${city})`;
+  return name;
+}
+
 /**
  * Fetch and normalize the detail for a single match. Throws if the request
  * fails so callers can fall back to a basic body.
@@ -308,7 +319,7 @@ export async function fetchMatchDetail(eventId: string): Promise<MatchDetail> {
   return {
     competition: body.header?.league?.name ?? '',
     kickoff: competition?.date ?? '',
-    venue: body.gameInfo?.venue?.fullName ?? '',
+    venue: buildVenue(body.gameInfo?.venue),
     broadcast: body.broadcasts?.[0]?.media?.shortName ?? '',
     referee: findReferee(body.gameInfo?.officials),
     state: toMatchState(statusType?.state),
