@@ -15,8 +15,8 @@ test('parses headline detail from a finished match summary', async () => {
 
   expect(detail.competition).toBe('MLS');
   expect(detail.venue).toBe('PayPal Park (San Jose, California)');
-  expect(detail.broadcast).toBe('MLS Season Pass');
-  expect(detail.referee).toBe('Jair Marrufo');
+  expect(detail.broadcast).toBe('MLS Season Pass (Streaming)');
+  expect(detail.referee).toBe('Jair Marrufo (Referee), Corey Parker (Assistant Referee)');
   expect(detail.state).toBe('post');
   expect(detail.statusDetail).toBe('FT');
 });

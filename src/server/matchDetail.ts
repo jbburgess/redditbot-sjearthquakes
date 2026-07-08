@@ -171,7 +171,7 @@ interface EspnSummaryResponse {
   rosters?: EspnRoster[];
   keyEvents?: EspnKeyEvent[];
   lastFiveGames?: EspnLastFiveGames[];
-  broadcasts?: { media?: { shortName?: string } }[];
+  broadcasts?: { media?: { shortName?: string }; type?: { shortName?: string } }[];
 }
 
 /** Map ESPN's status state onto our MatchState, defaulting to `pre`. */
@@ -284,9 +284,17 @@ function isGenericDelay(line: MatchEventLine): boolean {
   return line.text.trim().toLowerCase() === type;
 }
 
+/** Normalize known all-caps broadcast type labels to their preferred display form. */
+function normalizeBroadcastType(type: string): string {
+  return type === 'STREAMING' ? 'Streaming' : type;
+}
+
 function findReferee(officials: EspnOfficial[] | undefined): string {
-  const ref = officials?.find((o) => o.position?.name === 'Referee') ?? officials?.[0];
-  return ref?.fullName ?? '';
+  if (!officials?.length) return '';
+  return officials
+    .map((o) => (o.position?.name ? `${o.fullName} (${o.position.name})` : o.fullName ?? ''))
+    .filter(Boolean)
+    .join(', ');
 }
 
 /** Build a "Stadium (City)" venue string, omitting the city when unavailable. */
@@ -320,7 +328,14 @@ export async function fetchMatchDetail(eventId: string): Promise<MatchDetail> {
     competition: body.header?.league?.name ?? '',
     kickoff: competition?.date ?? '',
     venue: buildVenue(body.gameInfo?.venue),
-    broadcast: body.broadcasts?.[0]?.media?.shortName ?? '',
+    broadcast: (body.broadcasts ?? [])
+      .filter((b) => b.media?.shortName)
+      .map((b) =>
+        b.type?.shortName
+          ? `${b.media!.shortName} (${normalizeBroadcastType(b.type.shortName)})`
+          : b.media!.shortName!
+      )
+      .join(', '),
     referee: findReferee(body.gameInfo?.officials),
     state: toMatchState(statusType?.state),
     statusDetail: statusType?.detail ?? statusType?.shortDetail ?? '',

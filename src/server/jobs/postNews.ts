@@ -90,7 +90,10 @@ export async function handlePostNews(subredditName: string): Promise<void> {
       console.info(`News article already posted and removed, skipping: ${article.title}`);
       continue;
     }
-    if (await redis.exists(postedKey(article.link))) continue;
+    if (await redis.exists(postedKey(article.link))) {
+      console.debug(`News article already posted (Redis), skipping: ${article.title}`);
+      continue;
+    }
 
     await postArticle(subredditName, article);
     await redis.set(postedKey(article.link), '1', { expiration: new Date(Date.now() + TTL_MS) });
