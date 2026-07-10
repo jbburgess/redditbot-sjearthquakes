@@ -291,6 +291,7 @@ function normalizeBroadcastType(type: string): string {
 
 function findReferee(officials: EspnOfficial[] | undefined): string {
   if (!officials?.length) return '';
+  if (officials.length === 1) return officials[0]?.fullName ?? '';
   return officials
     .map((o) => (o.position?.name ? `${o.fullName} (${o.position.name})` : o.fullName ?? ''))
     .filter(Boolean)

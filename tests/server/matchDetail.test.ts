@@ -91,3 +91,17 @@ test('throws when the summary request fails', async () => {
   mockFetch([{ url: 'summary?event=', status: 404 }]);
   await expect(fetchMatchDetail('401')).rejects.toThrow(/ESPN summary request failed: 404/);
 });
+
+test('omits official role suffix when only one referee is listed', async () => {
+  const summarySingleOfficial = {
+    ...summaryPost,
+    gameInfo: {
+      ...summaryPost.gameInfo,
+      officials: [{ fullName: 'Jair Marrufo', position: { name: 'Referee' } }],
+    },
+  };
+  mockFetch([{ url: 'summary?event=', json: summarySingleOfficial }]);
+
+  const detail = await fetchMatchDetail('401');
+  expect(detail.referee).toBe('Jair Marrufo');
+});
