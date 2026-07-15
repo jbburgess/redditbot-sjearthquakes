@@ -1,12 +1,12 @@
 ---
 layout: default
-title: r/SJEarthquakes Bot — Legal
+title: Legal
 permalink: /
 ---
 
 # r/SJEarthquakes Bot
 
-Legal documents for the [r/SJEarthquakes Bot](https://github.com/jbburgess/redditbot-sjearthquakes),
+Legal documents for the [r/SJEarthquakes Bot](https://github.jonathanburgess.dev/sjearthquakesbot),
 a moderation app built on Reddit's [Devvit](https://developers.reddit.com/) platform.
 
 - [Privacy Policy](./privacy-policy)
