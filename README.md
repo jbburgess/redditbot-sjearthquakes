@@ -66,3 +66,15 @@ Requests to the following external domains are sent by this app:
 - `site.api.espn.com` - Used to fetch the team's schedule, fixtures, and live/post-match details (scores, events, lineups, and player performance stats) that populate every match thread. *(In the global allow list)*
 
 All requests to these domains are made server-side and are read-only (`HTTP GET`).
+
+## Legal
+
+Because this app uses HTTP fetch, Reddit requires a Terms and Conditions document and a
+Privacy Policy.
+
+- **Privacy Policy** — [docs/privacy-policy.md](docs/privacy-policy.md)
+  ([Published](https://jonathanburgess.dev/redditbot-sjearthquakes/privacy-policy))
+- **Terms and Conditions** — [docs/terms-and-conditions.md](docs/terms-and-conditions.md)
+  ([Published](https://jonathanburgess.dev/redditbot-sjearthquakes/terms-and-conditions))
+
+The published URLs above are the ones supplied in the Devvit app details form.
